@@ -2,12 +2,15 @@ import gym
 import minihack
 from .utils import get_player_location, get_target_location
 import matplotlib.pyplot as plt
+import time
 
 __all__ = ['Algorithm']
 
 
 class Algorithm:
     def __init__(self, env_name: str, name: str = "Algorithm"):
+        self.stop = None
+        self.start = None
         self.env = gym.make(env_name, observation_keys=("chars", "pixel"),)
         self.name = name
 
@@ -20,3 +23,10 @@ class Algorithm:
         # plt.show()
         target = get_target_location(local_game_map) if informed else None
         return self.env, local_state, local_game_map, start, target
+
+    def start_timer(self):
+        self.start = time.time()
+
+    def stop_timer(self):
+        self.stop = time.time()
+        return self.stop - self.start

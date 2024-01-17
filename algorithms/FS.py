@@ -12,6 +12,7 @@ class FS(Algorithm):
         self.pop_index = pop_index  # BFS default
 
     def __call__(self, seed: int):
+        self.start_timer()
         local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
 
         queue = [start]
@@ -25,10 +26,8 @@ class FS(Algorithm):
                     visited.add(neighbor)
                     queue.append(neighbor)
                     path.add(neighbor)
-                    if self.informed and neighbor == target:
-                        return list(path)
-                    elif not self.informed and neighbor == '@':
-                        return list(path)
+                    if neighbor == target or neighbor == '@':
+                        return list(path), list(visited), self.stop_timer()
 
 
 class BFS(FS):

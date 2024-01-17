@@ -12,6 +12,7 @@ class Greedy(Algorithm):
         self.h = get_heuristic(h) if isinstance(h, str) else h
 
     def __call__(self, seed: int):
+        self.start_timer()
         local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
 
         queue = [start]
@@ -23,8 +24,8 @@ class Greedy(Algorithm):
                 visited.add(node)
                 path.append(node)
                 if node == target:
-                    return path
+                    return path, list(visited), self.stop_timer()
                 for neighbor in get_valid_moves(local_game_map, node):
                     queue.append(neighbor)
                 queue.sort(key=lambda x: self.h(x, target))
-        return path
+        return path, list(visited), self.stop_timer()
