@@ -27,15 +27,14 @@ for i in range(num_examples):
     local_df = pd.DataFrame(results, columns=['name', 'path', 'visited', 'time', 'maze'])
     local_df['explored'] = local_df['visited'].apply(lambda x: len(x))
     local_df['solution'] = local_df['path'].apply(lambda x: len(x))
-    local_df['ex_sol_score'] = local_df['explored'] - local_df['solution']
-    local_df['ex_sol_score'] = 1 - local_df['ex_sol_score']/ max(local_df['ex_sol_score'])
+    local_df['ex_sol_score'] = local_df['solution']/local_df['explored']
     #  Score = sum of difference between steps taken in solution
     local_df['score'] = local_df['path'].apply(lambda x: sum(abs(x[i][0] - x[i+1][0]) + abs(x[i][1] - x[i+1][1]) for i in range(len(x)-1)))
     local_df['score'] = 1 - local_df['score']/ max(local_df['score'])
     df = pd.concat([local_df, df])
 
 df = df[['name', 'time', 'explored', 'solution', 'ex_sol_score', 'score']]
-df = df.groupby('name').mean()
-df['explored'] = df['explored'].apply(lambda x: int(x))
-df['solution'] = df['solution'].apply(lambda x: int(x))
+df = df.groupby('name').agg({'time': ['mean', 'std'], 'explored': ['mean', 'std'], 'solution': ['mean', 'std'], 'ex_sol_score': ['mean', 'std'], 'score': ['mean', 'std']})
+df.columns = ['_'.join(col) for col in df.columns.values]
+df = df.reset_index()
 df.to_csv('results.csv')

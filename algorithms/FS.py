@@ -16,16 +16,16 @@ class FS(Algorithm):
         local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
 
         queue = [start]
-        visited = set(start)
-        path = set(start)
+        visited = [start]
+        path = [start]
 
         while queue:
             node = queue.pop(self.pop_index)
             for neighbor in get_valid_moves(local_game_map, node):
                 if neighbor not in visited:
-                    visited.add(neighbor)
+                    visited.append(neighbor)
                     queue.append(neighbor)
-                    path.add(neighbor)
+                    path.append(neighbor)
                     if neighbor == target or neighbor == '@':
                         return list(path), list(visited), self.stop_timer()
 
@@ -35,7 +35,7 @@ class BFS(FS):
         super().__init__(env_name=env_name, informed=informed, name='BFS', pop_index=0)
 
     def __call__(self, seed: int):
-        super().__call__(seed)
+        return super().__call__(seed)
 
 
 class DFS(FS):
@@ -43,4 +43,4 @@ class DFS(FS):
         super().__init__(env_name=env_name, informed=informed, name='DFS', pop_index=-1)
 
     def __call__(self, seed: int):
-        super().__call__(seed)
+        return super().__call__(seed)

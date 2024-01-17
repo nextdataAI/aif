@@ -16,12 +16,12 @@ class Greedy(Algorithm):
         local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
 
         queue = [start]
-        visited = set()
+        visited = []
         path = []
         while queue:
             node = queue.pop(0)
             if node not in visited:
-                visited.add(node)
+                visited.append(node)
                 path.append(node)
                 if node == target:
                     return path, list(visited), self.stop_timer()
