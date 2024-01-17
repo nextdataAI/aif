@@ -35,6 +35,7 @@ class Dijkstra(Algorithm):
             close_list.append(current)
 
             if current == target:
+                print("Target found!")
                 path = self.build_path(parent, target)
                 return list(path), list(close_list), self.stop_timer()
 
