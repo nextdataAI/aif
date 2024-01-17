@@ -1,0 +1,18 @@
+- [] Generate some Mazes
+- [] Test
+- [] Implement course solutions
+    - [x] BFS
+    - [x] DFS
+    - [x] Greedy
+    - [] A*
+- [] DL/RL approaches
+    - [] HMM
+    - [] LSTM
+    - [] A* with NN heuristic
+- [] Evaluation Metrics
+    - [] Time
+    - [] Number of Nodes Expanded
+    - [] Number of Nodes in the Path
+    - [] Number of Nodes in the Solution
+    - [] Number of Nodes in the Maze
+    - [] Reward
