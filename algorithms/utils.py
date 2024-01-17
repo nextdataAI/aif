@@ -1,6 +1,9 @@
 import numpy as np
 import math
 
+__all__ = ['get_player_location', 'get_target_location', 'get_edges_location', 'is_wall', 'get_heuristic',
+           'get_valid_moves', 'actions_from_path', 'euclidean_distance', 'manhattan_distance']
+
 from typing import Tuple, List, Any, Union
 
 
@@ -16,6 +19,7 @@ def get_target_location(game_map: np.ndarray, symbol: str = ">") -> tuple[
     np.ndarray[Any, np.dtype[Union[np.signedinteger[Any], np.longlong]]]]:
     x, y = np.where(game_map == ord(symbol))
     return x[0], y[0]
+
 
 def get_edges_location(game_map: np.ndarray, symbol: str = "X") -> tuple[
     np.ndarray[Any, np.dtype[Union[np.signedinteger[Any], np.longlong]]],
@@ -87,3 +91,16 @@ def manhattan_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
     x1, y1 = point1
     x2, y2 = point2
     return abs(x1 - x2) + abs(y1 - y2)
+
+
+heuristics = {
+    'manhattan': manhattan_distance,
+    'euclidean': euclidean_distance
+}
+
+
+def get_heuristic(heuristic: str):
+    if heuristic in heuristics.keys():
+        return heuristics[heuristic]
+    else:
+        raise Exception("Heuristic not supported!")
