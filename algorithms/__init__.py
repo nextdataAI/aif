@@ -1,4 +1,6 @@
 from .FS import *
 from .Greedy import *
-from .AStart import *
+from .AStar import *
 from .Dijkstra import *
+from .Algorithm import *
+from .utils import *

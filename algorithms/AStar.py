@@ -1,17 +1,20 @@
 from queue import PriorityQueue
-from gym.core import Env
+import gym
+import minihack
+from .utils import get_valid_moves, get_heuristic
+from typing import Union
 from .Algorithm import Algorithm
-from .utils import get_valid_moves
-from typing import Optional, Any
 
-__all__ = ['Dijkstra']
+__all__ = ['AStar']
 
 
-class Dijkstra(Algorithm):
-    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", name: str = 'Dijkstra'):
+class AStar(Algorithm):
+    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", h: Union[callable, str] = "manhattan",
+                 name: str = "AStar"):
         super().__init__(env_name, name)
+        self.h = get_heuristic(h) if isinstance(h, str) else h
 
-    def __call__(self, seed: int) -> Optional[Any]:
+    def __call__(self, seed: int):
         local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
 
         # initialize open and close list
@@ -21,7 +24,8 @@ class Dijkstra(Algorithm):
         support_list = {}
 
         starting_state_g = 0
-        starting_state_f = starting_state_g
+        starting_state_h = self.h(start, target)
+        starting_state_f = starting_state_g + starting_state_h
 
         open_list.put((starting_state_f, (start, starting_state_g)))
         support_list[start] = starting_state_g
@@ -45,7 +49,8 @@ class Dijkstra(Algorithm):
 
                 # compute neighbor g, h and f values
                 neighbor_g = 1 + current_cost
-                neighbor_f = neighbor_g
+                neighbor_h = self.h(neighbor, target)
+                neighbor_f = neighbor_g + neighbor_h
                 parent[neighbor] = current
                 neighbor_entry = (neighbor_f, (neighbor, neighbor_g))
                 # if neighbor in open_list
@@ -61,7 +66,8 @@ class Dijkstra(Algorithm):
         print("Target node not found!")
         return None
 
-    def build_path(self, parent, target):
+    @staticmethod
+    def build_path(parent, target):
         path = []
         while target is not None:
             path.append(target)
