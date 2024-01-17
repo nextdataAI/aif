@@ -1,6 +1,6 @@
 from typing import Union
 from .Algorithm import Algorithm
-from gym.core import Env
+import time
 from .utils import get_valid_moves, manhattan_distance, get_heuristic
 
 __all__ = ['Greedy']
@@ -11,7 +11,8 @@ class Greedy(Algorithm):
         super().__init__(env_name, name)
         self.h = get_heuristic(h) if isinstance(h, str) else h
 
-    def __call__(self, seed: int):
+    def __call__(self, seed: int, return_visited: bool = False, return_time: bool = False):
+        start_time = time.time()
         local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
 
         queue = [start]
@@ -23,8 +24,8 @@ class Greedy(Algorithm):
                 visited.add(node)
                 path.append(node)
                 if node == target:
-                    return path
+                    return path, list(visited), time.time() - start_time
                 for neighbor in get_valid_moves(local_game_map, node):
                     queue.append(neighbor)
                 queue.sort(key=lambda x: self.h(x, target))
-        return path
+        return None, list(visited), time.time() - start_time

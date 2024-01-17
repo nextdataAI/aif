@@ -2,7 +2,7 @@ import sys
 import pandas as pd
 from algorithms import *
 import numpy as np
-df = pd.DataFrame(columns=['path', 'name'], dtype=object)
+df = pd.DataFrame(columns=['name', 'path', 'visited', 'time', 'maze', 'explored', 'solution', 'score'], dtype=object)
 
 num_examples = 100
 
@@ -12,6 +12,7 @@ algorithms = [
     BFS(env_name),
     DFS(env_name),
     AStar(env_name),
+    AStar(env_name, h='euclidean', name='ASTAR-EUCLIDEAN'),
     Greedy(env_name),
     Dijkstra(env_name),
     # hmm,
@@ -21,10 +22,20 @@ algorithms = [
 results = []
 for i in range(num_examples):
     rand_seed = np.random.randint(0, sys.maxsize)
-    results.append([(alg(rand_seed), alg.name) for alg in algorithms])
+    results = [tuple([alg.name]) + alg(rand_seed) + tuple([f'Maze_{i}']) for alg in algorithms]
     # insert into df
-    local_df = pd.DataFrame(results[-1], columns=['path', 'name'])
-    df = df.append(local_df, ignore_index=True)
-    print(df)
-    break
+    local_df = pd.DataFrame(results, columns=['name', 'path', 'visited', 'time', 'maze'])
+    local_df['explored'] = local_df['visited'].apply(lambda x: len(x))
+    local_df['solution'] = local_df['path'].apply(lambda x: len(x))
+    local_df['ex_sol_score'] = local_df['explored'] - local_df['solution']
+    local_df['ex_sol_score'] = 1 - local_df['ex_sol_score']/ max(local_df['ex_sol_score'])
+    #  Score = sum of difference between steps taken in solution
+    local_df['score'] = local_df['path'].apply(lambda x: sum(abs(x[i][0] - x[i+1][0]) + abs(x[i][1] - x[i+1][1]) for i in range(len(x)-1)))
+    local_df['score'] = 1 - local_df['score']/ max(local_df['score'])
+    df = pd.concat([local_df, df])
 
+df = df[['name', 'time', 'explored', 'solution', 'ex_sol_score', 'score']]
+df = df.groupby('name').mean()
+df['explored'] = df['explored'].apply(lambda x: int(x))
+df['solution'] = df['solution'].apply(lambda x: int(x))
+df.to_csv('results.csv')

@@ -1,6 +1,7 @@
 from queue import PriorityQueue
 import gym
 import minihack
+import time
 from .utils import get_valid_moves, get_heuristic
 from typing import Union
 from .Algorithm import Algorithm
@@ -14,7 +15,8 @@ class AStar(Algorithm):
         super().__init__(env_name, name)
         self.h = get_heuristic(h) if isinstance(h, str) else h
 
-    def __call__(self, seed: int):
+    def __call__(self, seed: int, return_visited: bool = False, return_time: bool = False) -> Union[None, tuple]:
+        start_time = time.time()
         local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
 
         # initialize open and close list
@@ -38,9 +40,8 @@ class AStar(Algorithm):
             close_list.append(current)
 
             if current == target:
-                print("Target found!")
                 path = self.build_path(parent, target)
-                return path
+                return path, close_list, time.time() - start_time
 
             for neighbor in get_valid_moves(local_game_map, current):
                 # check if neighbor in close list, if so continue
@@ -63,8 +64,7 @@ class AStar(Algorithm):
                 open_list.put(neighbor_entry)
                 support_list[neighbor] = neighbor_g
 
-        print("Target node not found!")
-        return None
+        return None, close_list, time.time() - start_time
 
     @staticmethod
     def build_path(parent, target):

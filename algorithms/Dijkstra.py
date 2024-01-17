@@ -1,5 +1,5 @@
 from queue import PriorityQueue
-from gym.core import Env
+import time
 from .Algorithm import Algorithm
 from .utils import get_valid_moves
 from typing import Optional, Any
@@ -12,6 +12,7 @@ class Dijkstra(Algorithm):
         super().__init__(env_name, name)
 
     def __call__(self, seed: int) -> Optional[Any]:
+        start_time = time.time()
         local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
 
         # initialize open and close list
@@ -34,9 +35,8 @@ class Dijkstra(Algorithm):
             close_list.append(current)
 
             if current == target:
-                print("Target found!")
                 path = self.build_path(parent, target)
-                return path
+                return path, close_list, time.time() - start_time
 
             for neighbor in get_valid_moves(local_game_map, current):
                 # check if neighbor in close list, if so continue
@@ -58,8 +58,7 @@ class Dijkstra(Algorithm):
                 open_list.put(neighbor_entry)
                 support_list[neighbor] = neighbor_g
 
-        print("Target node not found!")
-        return None
+        return None, close_list, time.time() - start_time
 
     def build_path(self, parent, target):
         path = []
