@@ -5,10 +5,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import deque
-from gym.core import Env
+from .utils import get_player_location, get_valid_moves, clear_screen, animate
 from .Algorithm import Algorithm
+import matplotlib.pyplot as plt
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 
 
 # Experience Replay class to efficiently store and sample experiences
@@ -22,6 +23,9 @@ class ExperienceReplay:
 
     def sample(self, batch_size):
         return random.sample(self.buffer, batch_size)
+
+    def path(self):
+        return self.buffer
 
     def __len__(self):
         return len(self.buffer)
@@ -171,7 +175,13 @@ def train(agent: DQNAgent, env: Env, batch_size: int = 1, sequence_length: int =
     frame_idx = 0
     explored_positions = []
 
+    path = []
+    # fig = plt.figure()
     # Run until an episode is done
+    next_state = single_state
+    # im = plt.imshow(next_state)
+    # env.render()
+    agent_pos = get_player_location(next_state)
     while not done:
         epsilon = epsilon_update(epsilon_start, epsilon_final, epsilon_decay, frame_idx)
 
