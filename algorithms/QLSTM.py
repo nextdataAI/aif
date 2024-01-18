@@ -34,18 +34,24 @@ class DQNAgent(nn.Module):
         :param input_dim: The number of states in the environment
         :param batch_size: The size of the batch to be used during training
         """
-        
         super(DQNAgent, self).__init__()
         self.action_dim = 4
-        self.hidden_dim = 32
+        self.hidden_dim = 512
         self.n_layers = 2
         self.memory = ExperienceReplay()
         self.gamma = 0.99
         self.batch_size = batch_size
+        self.device = torch.device(device)
+
         # LSTM layer for handling sequential data
-        self.lstm = nn.LSTM(input_dim, self.hidden_dim, self.n_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_size=input_dim,
+                            hidden_size=self.hidden_dim,
+                            num_layers=self.n_layers,
+                            batch_first=True).to(self.device)
+
         # Fully connected layer for generating Q-values from LSTM's hidden states
-        self.fc = nn.Linear(self.hidden_dim, self.action_dim)
+        self.fc = nn.Linear(in_features=self.hidden_dim,
+                            out_features=self.action_dim).to(self.device)
 
         # Forward pass through the model
 
@@ -82,8 +88,7 @@ class DQNAgent(nn.Module):
         """
 
         with torch.no_grad():
-            state = torch.tensor(state, dtype=torch.float32)  # Convert to tensor
-            state.to(device)
+            state = torch.tensor(state, dtype=torch.float32).to(self.device)
             q_values = self.forward(state)  # Get Q-values
             action = np.argmax(q_values.cpu().data.numpy())  # Choose action with highest Q-value
             return action
@@ -97,7 +102,7 @@ class DQNAgent(nn.Module):
         :param action: The action taken by the agent
         :param reward: The reward received after taking the action
         :param next_state: The state of the environment after the action was taken
-        :param done: Whether the environment is done (episode is finished)
+        :param done: Whether the environment is done (an episode is finished)
         """
 
         self.memory.push(state, action, reward, next_state, done)
@@ -116,11 +121,11 @@ class DQNAgent(nn.Module):
         experiences = self.memory.sample(batch_size)
         state, action, reward, next_state, done = zip(*experiences)
 
-        state = torch.tensor(state, dtype=torch.float32)
-        next_state = torch.tensor(next_state, dtype=torch.float32)
-        reward = torch.tensor(reward, dtype=torch.float32)
-        action = torch.tensor(action, dtype=torch.int64)
-        done = torch.tensor(done, dtype=torch.int8)
+        state = torch.from_numpy(np.array(state)).float().to(self.device)
+        next_state = torch.from_numpy(np.array(next_state)).float().to(self.device)
+        reward = torch.tensor(reward, dtype=torch.float32).to(self.device)
+        action = torch.tensor(action, dtype=torch.int64).to(self.device)
+        done = torch.tensor(done, dtype=torch.int8).to(self.device)
 
         current_q_values = self.forward(state)
         max_next_q_values = self.forward(next_state).detach().max(1)[0]
@@ -135,6 +140,7 @@ class DQNAgent(nn.Module):
 
 def train(agent: DQNAgent, env: Env, batch_size: int = 1, sequence_length: int = 4):
     # Set up an Adam optimizer for the training
+    temp = agent.parameters()
     optimizer = torch.optim.Adam(agent.parameters())
 
     # Reset the environment and get the initial state
