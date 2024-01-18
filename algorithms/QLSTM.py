@@ -4,10 +4,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import deque
-from gym.core import Env
+from .utils import get_player_location, get_valid_moves, clear_screen, animate
 from .Algorithm import Algorithm
+import matplotlib.pyplot as plt
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 
 
 # Experience Replay class to efficiently store and sample experiences
@@ -20,6 +21,9 @@ class ExperienceReplay:
 
     def sample(self, batch_size):
         return random.sample(self.buffer, batch_size)
+
+    def path(self):
+        return self.buffer
 
     def __len__(self):
         return len(self.buffer)
@@ -54,12 +58,25 @@ class DQNAgent(nn.Module):
         return out[-1, :]
 
     # Choose a discrete action given the state
-    def act(self, state):
+    def act(self, state, game_map, agent_pos):
         with torch.no_grad():
             state = torch.tensor(state, dtype=torch.float32)  # Convert to tensor
             state.to(device)
             q_values = self.forward(state)  # Get Q-values
-            action = np.argmax(q_values.cpu().data.numpy())  # Choose action with highest Q-value
+            while True:
+                action = np.argmax(q_values.cpu().data.numpy())
+                # break
+                if action == 0 and (agent_pos[0] - 1, agent_pos[1]) in get_valid_moves(game_map, agent_pos):
+                    break
+                elif action == 1 and (agent_pos[0], agent_pos[1] + 1) in get_valid_moves(game_map, agent_pos):
+                    break
+                elif action == 2 and (agent_pos[0] + 1, agent_pos[1]) in get_valid_moves(game_map, agent_pos):
+                    break
+                elif action == 3 and (agent_pos[0], agent_pos[1] - 1) in get_valid_moves(game_map, agent_pos):
+                    break
+                else:
+                    q_values[action] = -1e9
+
             return action
 
     # Cache a new experience
@@ -108,14 +125,26 @@ def train(agent, env, batch_size, sequence_length):
     # Initialize total reward to 0
     total_reward = 0
 
+    path = []
+    # fig = plt.figure()
     # Run until an episode is done
+    next_state = single_state
+    # im = plt.imshow(next_state)
+    # env.render()
+    agent_pos = get_player_location(next_state)
     while not done:
+        # clear_screen()
         # Ask the agent to decide on an action based on the state sequence
-        action = agent.act(state)
-
+        action = agent.act(state, next_state, agent_pos)
         # Take the action and get the new state, reward and done flag
         next_state, reward, done, _ = env.step(action)
         next_state = next_state['chars']
+        agent_pos = get_player_location(next_state)
+        if agent_pos == (None, None):
+            return path
+        # animate(fig, im, next_state)
+        # env.render()
+        path.append(agent_pos)
 
         # Shift the states in the sequence and append the new state
         state[:-1] = state[1:]
@@ -132,6 +161,7 @@ def train(agent, env, batch_size, sequence_length):
 
     # Print the total reward for this episode
     print(f"Total Reward: {total_reward}")
+    return path
 
 
 class QLSTM(Algorithm):
@@ -147,5 +177,7 @@ class QLSTM(Algorithm):
         self.agent = DQNAgent(self.state_dim, self.hidden_dim, self.action_dim, self.n_layers, self.memory_capacity)
 
     def __call__(self, seed: int):
+        self.start_timer()
         local_env, _, _, _, _ = super().initialize_env(seed)
-        train(self.agent, local_env, self.batch_size, self.past_states_seq_len)
+        path = train(self.agent, local_env, self.batch_size, self.past_states_seq_len)
+        return path, path, self.stop_timer()
