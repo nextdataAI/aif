@@ -1,3 +1,4 @@
+import math
 import random
 import numpy as np
 import torch
@@ -36,14 +37,14 @@ class DQNAgent(nn.Module):
         """
         super(DQNAgent, self).__init__()
         self.action_dim = 4
-        self.hidden_dim = 512
-        self.n_layers = 2
+        self.hidden_dim = 128
+        self.n_layers = 1
         self.memory = ExperienceReplay()
         self.gamma = 0.99
         self.batch_size = batch_size
         self.device = torch.device(device)
 
-        # LSTM layer for handling sequential data
+        # LSTM layer for handling sequential states
         self.lstm = nn.LSTM(input_size=input_dim,
                             hidden_size=self.hidden_dim,
                             num_layers=self.n_layers,
@@ -52,8 +53,6 @@ class DQNAgent(nn.Module):
         # Fully connected layer for generating Q-values from LSTM's hidden states
         self.fc = nn.Linear(in_features=self.hidden_dim,
                             out_features=self.action_dim).to(self.device)
-
-        # Forward pass through the model
 
     def forward(self, x):
         """
@@ -72,25 +71,35 @@ class DQNAgent(nn.Module):
         h0 = torch.zeros(self.n_layers, x.size(0), self.hidden_dim).to(x.device)
         c0 = torch.zeros(self.n_layers, x.size(0), self.hidden_dim).to(x.device)
 
-        # Pass through LSTM
-        out, (hn, cn) = self.lstm(x, (h0, c0))
+        out, (_, _) = self.lstm(x, (h0, c0))
         # Pass the LSTM's output through the fully connected layer
         out = self.fc(out[:, -1, :])
+        out = torch.relu(out)
         return out
 
     # Choose a discrete action given the state
-    def act(self, state):
+    def act(self, state, epsilon: float = 0.5):
         """
         Chooses an action based on given state.
 
         :param state: The current state of the environment
+        :param epsilon: The exploration rate.
+        It's the probability that a random action will be selected.
         :return: The action selected by the agent
         """
 
         with torch.no_grad():
             state = torch.tensor(state, dtype=torch.float32).to(self.device)
-            q_values = self.forward(state)  # Get Q-values
-            action = np.argmax(q_values.cpu().data.numpy())  # Choose action with highest Q-value
+
+            # Explore: select a random action.
+            if np.random.uniform() < epsilon:
+                action = random.randint(0, self.action_dim - 1)
+
+            # Exploit: select the action with max value (future reward)
+            else:
+                q_values = self.forward(state).mean(0)
+                action = torch.argmax(q_values).item()
+
             return action
 
     # Cache a new experience
@@ -131,16 +140,19 @@ class DQNAgent(nn.Module):
         max_next_q_values = self.forward(next_state).detach().max(1)[0]
         expected_q_values = reward + self.gamma * max_next_q_values * (1 - done)
 
-        loss = F.smooth_l1_loss(current_q_values.gather(1, action.unsqueeze(-1)), expected_q_values.unsqueeze(-1))
+        loss = F.mse_loss(current_q_values.gather(1, action.unsqueeze(-1)), expected_q_values.unsqueeze(-1))
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
 
+def epsilon_update(epsilon_start: float, epsilon_final: float, epsilon_decay: int, frame_idx: int):
+    return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame_idx / epsilon_decay)
+
+
 def train(agent: DQNAgent, env: Env, batch_size: int = 1, sequence_length: int = 4):
     # Set up an Adam optimizer for the training
-    temp = agent.parameters()
     optimizer = torch.optim.Adam(agent.parameters())
 
     # Reset the environment and get the initial state
@@ -151,19 +163,28 @@ def train(agent: DQNAgent, env: Env, batch_size: int = 1, sequence_length: int =
     # Set the last state in sequence to the initial state
     state[-1] = single_state
 
-    # Initialize the done flag to False
     done = False
-    # Initialize total reward to 0
     total_reward = 0
+    epsilon_start = 1.0
+    epsilon_final = 0.01
+    epsilon_decay = 500
+    frame_idx = 0
+    explored_positions = []
 
     # Run until an episode is done
     while not done:
-        # Ask the agent to decide on an action based on the state sequence
-        action = agent.act(state)
+        epsilon = epsilon_update(epsilon_start, epsilon_final, epsilon_decay, frame_idx)
 
+        # Ask the agent to decide on an action based on the state sequence
+        action = agent.act(state, epsilon)
         # Take the action and get the new state, reward and done flag
         next_state, reward, done, _ = env.step(action)
+        agent_position = get_position(next_state['chars'])
+        explored_positions.append(agent_position)
         next_state = next_state['chars'].flatten()
+        frame_idx += 1
+
+        # env.render()
 
         # Shift the states in the sequence and append the new state
         state[:-1] = state[1:]
@@ -180,15 +201,29 @@ def train(agent: DQNAgent, env: Env, batch_size: int = 1, sequence_length: int =
 
     # Print the total reward for this episode
     print(f"Total Reward: {total_reward}")
+    return explored_positions
+
+
+def get_position(chars_matrix, agent_char='@'):
+    # '@' is an example, the agent's symbol can be any character based on your environment settings
+    # chars_matrix is the state['chars'] of your environment
+
+    for i in range(len(chars_matrix)):
+        for j in range(len(chars_matrix[i])):
+            if chars_matrix[i][j] == agent_char:
+                return i, j  # return as soon as you find the agent char
+    return None  # return None if the agent char is not found
 
 
 class QLSTM(Algorithm):
     def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", name: str = "QLSTM"):
         super().__init__(env_name, name)
-        self.batch_size = 32
+        self.batch_size = 8
         self.past_states_seq_len = 8
 
     def __call__(self, seed: int):
+        self.start_timer()
         local_env, _, local_game_map, _, _ = super().initialize_env(seed)
         input_dim = local_game_map.shape[0] * local_game_map.shape[1]
-        train(DQNAgent(input_dim, self.batch_size), local_env, self.batch_size, self.past_states_seq_len)
+        explored_positions = train(DQNAgent(input_dim, self.batch_size), local_env, self.batch_size, self.past_states_seq_len)
+        return None, explored_positions, self.stop_timer()
