@@ -16,7 +16,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.ba
 # Experience Replay class to efficiently store and sample experiences
 class ExperienceReplay:
     def __init__(self):
-        self.memory_capacity = 1000
+        self.memory_capacity = 5 * 1000
         self.buffer = deque(maxlen=self.memory_capacity)
 
     def push(self, state_sequence, action, reward, next_state, done):
@@ -32,6 +32,11 @@ class ExperienceReplay:
         return len(self.buffer)
 
 
+def weights_init(m):
+    nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
+    m.bias.data.fill_(0)
+
+
 class DQNAgent(nn.Module):
 
     def __init__(self, input_dim: int, batch_size: int = 1, agent=None):
@@ -43,44 +48,64 @@ class DQNAgent(nn.Module):
         """
         super(DQNAgent, self).__init__()
         self.action_dim = 4
-        self.hidden_dim = 32
+        self.hidden_dim = 128
         self.n_layers = 1
-        self.memory = ExperienceReplay()
         self.gamma = 0.99
         self.batch_size = batch_size
         self.device = torch.device(device)
+        self.epsilon_decay = 3000
+        self.epsilon_end = 1e-3
+        self.epsilon_start = 1.0
 
         if agent is None:
+            self.epsilon = 1.0
+            self.frame_idx = 0
+            self.memory = ExperienceReplay()
+
             # LSTM layer for handling sequential states
             self.lstm = nn.LSTM(input_size=input_dim,
                                 hidden_size=self.hidden_dim,
                                 num_layers=self.n_layers,
                                 batch_first=True).to(self.device)
-            self.activation1 = nn.ReLU().to(self.device)
+            self.dropout_lstm = nn.Dropout(p=0.2)
 
             # Fully connected layers for generating Q-values from LSTM's hidden states
             self.fc1 = nn.Linear(in_features=self.hidden_dim,
-                                 out_features=128).to(self.device)
-            self.activation2 = nn.ELU().to(self.device)
-            self.fc2 = nn.Linear(in_features=128,
-                                 out_features=128).to(self.device)
-            self.activation3 = nn.ELU().to(self.device)
-            self.fc3 = nn.Linear(in_features=128,
-                                 out_features=128).to(self.device)
-            self.activation4 = nn.ELU().to(self.device)
-            self.fc_final = nn.Linear(in_features=128,
-                                      out_features=self.action_dim).to(self.device)
+                                 out_features=64).to(self.device)
+            self.fc1.apply(weights_init)
+            self.activation1 = nn.ELU().to(self.device)
 
+            self.fc2 = nn.Linear(in_features=64,
+                                 out_features=64).to(self.device)
+            self.fc2.apply(weights_init)
+            self.activation2 = nn.ELU().to(self.device)
+
+            self.fc3 = nn.Linear(in_features=64,
+                                 out_features=64).to(self.device)
+            self.fc3.apply(weights_init)
+            self.activation3 = nn.ELU().to(self.device)
+
+            self.fc_final = nn.Linear(in_features=64,
+                                      out_features=self.action_dim).to(self.device)
+            self.fc_final.apply(weights_init)
         else:
+            self.epsilon = agent.epsilon
+            self.frame_idx = agent.frame_idx
+            self.memory = agent.memory
+
             self.lstm = agent.lstm
+            self.dropout_lstm = agent.dropout_lstm
             self.activation1 = agent.activation1
             self.fc1 = agent.fc1
             self.activation2 = agent.activation2
             self.fc2 = agent.fc2
             self.activation3 = agent.activation3
             self.fc3 = agent.fc3
-            self.activation4 = agent.activation4
             self.fc_final = agent.fc_final
+
+    def update_epsilon(self):
+        self.epsilon = (self.epsilon_end + (self.epsilon_start - self.epsilon_end)
+                        * math.exp(-1. * self.frame_idx / self.epsilon_decay))
 
     def forward(self, x):
         """
@@ -96,23 +121,23 @@ class DQNAgent(nn.Module):
             x = x.unsqueeze(0)
 
         out, (_, _) = self.lstm(x)
-        out = self.activation1(out)
+        out = self.dropout_lstm(out)
         out = self.fc1(out[:, -1, :])
-        out = self.activation2(out)
+        out = self.activation1(out)
         out = self.fc2(out)
+        out = self.activation2(out)
+        out = self.fc3(out)
         out = self.activation3(out)
         out = self.fc_final(out)
 
         return out
 
     # Choose a discrete action given the state
-    def act(self, state, epsilon: float = 0.5):
+    def act(self, state):
         """
         Chooses an action based on given state.
 
         :param state: The current state of the environment
-        :param epsilon: The exploration rate.
-        It's the probability that a random action will be selected.
         :return: The action selected by the agent
         """
 
@@ -120,10 +145,10 @@ class DQNAgent(nn.Module):
             state = torch.tensor(state, dtype=torch.float32).to(self.device)
 
             # Explore: select a random action.
-            if np.random.uniform() < epsilon:
+            if np.random.uniform() < self.epsilon:
                 action = random.randint(0, self.action_dim - 1)
 
-            # Exploit: select the action with max value (future reward)
+            # Exploit: select the action with max q value (future reward)
             else:
                 q_values = self.forward(state).mean(0)
                 action = torch.argmax(q_values).item()
@@ -175,14 +200,10 @@ class DQNAgent(nn.Module):
         optimizer.step()
 
 
-def epsilon_update(epsilon_start: float, epsilon_final: float, epsilon_decay: int, frame_idx: int):
-    return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame_idx / epsilon_decay)
-
-
 def train(agent: DQNAgent, env: Env, single_state: np.ndarray, target: (int, int),
           batch_size: int = 1, sequence_length: int = 4):
-    # Set up an Adam optimizer for the training
-    optimizer = torch.optim.Adam(agent.parameters(), lr=0.9, amsgrad=True)
+
+    optimizer = torch.optim.Adam(agent.parameters(), lr=1e-3, amsgrad=True)
 
     single_state = single_state.flatten()
     # Initialize a sequence of states based on sequence_length
@@ -193,28 +214,24 @@ def train(agent: DQNAgent, env: Env, single_state: np.ndarray, target: (int, int
     done = False
     target_reached = False
     total_reward = 0
-    epsilon_start = 1.0
-    epsilon_final = 0.001
-    epsilon_decay = 1000
     frame_idx = 0
     explored_positions = []
 
     # Run until an episode is done
     while not done:
-        # clear_screen()
-        epsilon = epsilon_update(epsilon_start, epsilon_final, epsilon_decay, frame_idx)
+        agent.update_epsilon()
 
         # Ask the agent to decide on an action based on the state sequence
-        action = agent.act(state, epsilon)
+        action = agent.act(state)
+
         # Take the action and get the new state, reward and done flag
         next_state, reward, done, _ = env.step(action)
         agent_position = get_player_location(next_state['chars'])
         explored_positions.append(agent_position)
         next_state = next_state['chars'].flatten()
-        frame_idx += 1
+
         if reward == 1:
             target_reached = True
-            break
 
         # env.render()
 
@@ -228,9 +245,11 @@ def train(agent: DQNAgent, env: Env, single_state: np.ndarray, target: (int, int
         # Perform experience replay and update the weights of the DQN
         agent.experience_replay(optimizer, batch_size)
 
-        # Accumulate the reward
+        agent.frame_idx += 1
+        frame_idx += 1
         total_reward += reward
-        print(f'\rFrame: {frame_idx} | Reward: {total_reward}', end='', flush=True)
+        total_reward = round(total_reward, 2)
+        print(f'\rFrame: {frame_idx} | Reward: {total_reward} ', end='', flush=True)
 
     # Print the total reward for this episode
     return target_reached, explored_positions
@@ -239,8 +258,8 @@ def train(agent: DQNAgent, env: Env, single_state: np.ndarray, target: (int, int
 class QLSTM(Algorithm):
     def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", name: str = "QLSTM"):
         super().__init__(env_name, name)
-        self.batch_size = 32
-        self.past_states_seq_len = 10
+        self.batch_size = 100
+        self.past_states_seq_len = 200
         self.agent = None
 
     def __call__(self, seed: int):
