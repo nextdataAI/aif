@@ -8,6 +8,7 @@ from collections import deque
 from .utils import get_player_location, get_valid_moves, clear_screen, animate
 from .Algorithm import Algorithm
 import matplotlib.pyplot as plt
+from gym import Env
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 
@@ -32,7 +33,7 @@ class ExperienceReplay:
 
 
 class DQNAgent(nn.Module):
-    def __init__(self, input_dim: int, batch_size: int = 1):
+    def __init__(self, input_dim: int, batch_size: int = 1, agent=None):
         """
         Construct a Deep Q-Learning Agent.
 
@@ -48,15 +49,19 @@ class DQNAgent(nn.Module):
         self.batch_size = batch_size
         self.device = torch.device(device)
 
-        # LSTM layer for handling sequential states
-        self.lstm = nn.LSTM(input_size=input_dim,
-                            hidden_size=self.hidden_dim,
-                            num_layers=self.n_layers,
-                            batch_first=True).to(self.device)
+        if agent is None:
+            # LSTM layer for handling sequential states
+            self.lstm = nn.LSTM(input_size=input_dim,
+                                hidden_size=self.hidden_dim,
+                                num_layers=self.n_layers,
+                                batch_first=True).to(self.device)
 
-        # Fully connected layer for generating Q-values from LSTM's hidden states
-        self.fc = nn.Linear(in_features=self.hidden_dim,
-                            out_features=self.action_dim).to(self.device)
+            # Fully connected layer for generating Q-values from LSTM's hidden states
+            self.fc = nn.Linear(in_features=self.hidden_dim,
+                                out_features=self.action_dim).to(self.device)
+        else:
+            self.lstm = agent.lstm
+            self.fc = agent.fc
 
     def forward(self, x):
         """
@@ -155,13 +160,11 @@ def epsilon_update(epsilon_start: float, epsilon_final: float, epsilon_decay: in
     return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame_idx / epsilon_decay)
 
 
-def train(agent: DQNAgent, env: Env, batch_size: int = 1, sequence_length: int = 4):
+def train(agent: DQNAgent, env: Env, single_state: np.ndarray, batch_size: int = 1, sequence_length: int = 4):
     # Set up an Adam optimizer for the training
     optimizer = torch.optim.Adam(agent.parameters())
 
-    # Reset the environment and get the initial state
-    single_state = env.reset()
-    single_state = single_state['chars'].flatten()
+    single_state = single_state.flatten()
     # Initialize a sequence of states based on sequence_length
     state = np.zeros((sequence_length,) + single_state.shape)
     # Set the last state in sequence to the initial state
@@ -175,13 +178,8 @@ def train(agent: DQNAgent, env: Env, batch_size: int = 1, sequence_length: int =
     frame_idx = 0
     explored_positions = []
 
-    path = []
-    # fig = plt.figure()
     # Run until an episode is done
     next_state = single_state
-    # im = plt.imshow(next_state)
-    # env.render()
-    agent_pos = get_player_location(next_state)
     while not done:
         epsilon = epsilon_update(epsilon_start, epsilon_final, epsilon_decay, frame_idx)
 
@@ -228,12 +226,15 @@ def get_position(chars_matrix, agent_char='@'):
 class QLSTM(Algorithm):
     def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", name: str = "QLSTM"):
         super().__init__(env_name, name)
-        self.batch_size = 8
+        self.batch_size = 32
         self.past_states_seq_len = 8
+        self.agent = None
 
     def __call__(self, seed: int):
         self.start_timer()
         local_env, _, local_game_map, _, _ = super().initialize_env(seed)
         input_dim = local_game_map.shape[0] * local_game_map.shape[1]
-        explored_positions = train(DQNAgent(input_dim, self.batch_size), local_env, self.batch_size, self.past_states_seq_len)
+        self.agent = DQNAgent(input_dim, self.batch_size, self.agent)
+        explored_positions = train(self.agent, local_env, local_game_map, self.batch_size, self.past_states_seq_len)
+
         return None, explored_positions, self.stop_timer()

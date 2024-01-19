@@ -18,7 +18,7 @@ class MyRewardManager(RewardManager):
         self.previous_distance = 0
         self.add_custom_reward_fn(self.reward_fn)
 
-    def reward_fn(self,env: MiniHack,state: Any,action: int,new_state: Any):
+    def reward_fn(self, env: MiniHack, state: Any, action: int, new_state: Any):
         player_pos = get_player_location(state[1])
         if player_pos not in self.memory:
             self.memory.append(player_pos)
@@ -28,9 +28,6 @@ class MyRewardManager(RewardManager):
             return 1
         else:
             return -0.01
-
-
-
 
 
 class Algorithm:
