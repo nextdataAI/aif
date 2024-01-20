@@ -1,17 +1,34 @@
 __all__ = ["CNNHeuristic"]
 
+import pickle
+
+import keras.optimizers
+import wandb
 from PIL import Image as im
+import os
 from data.image_dataset import ImageDataset
 from algorithms.heuristics.Heuristic import Heuristic
-from tensorflow.keras.models import load_model
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+  # Restrict TensorFlow to only allocate 1GB of memory on the first GPU
+  try:
+    tf.config.set_logical_device_configuration(
+        gpus[0],
+        [tf.config.LogicalDeviceConfiguration(memory_limit=8196)])
+    logical_gpus = tf.config.list_logical_devices('GPU')
+    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+  except RuntimeError as e:
+    # Virtual devices must be set before GPUs have been initialized
+    print(e)
 
 
 class CNNHeuristic(Heuristic):
     def __init__(self, name: str = 'CNN'):
         super().__init__(name=name)
-        self.model = self.load_model('data/model.h5')
+        self.model = self.load_model('data/model.pkl')
 
     def load_model(self, model_path: str = None):
         """
@@ -22,7 +39,11 @@ class CNNHeuristic(Heuristic):
         if model_path is None:
             return None
         try:
-            return load_model(model_path)
+            if os.path.exists(model_path):
+                self.history = pickle.load(open('data/model_history.pkl', 'rb'))
+            if os.path.exists(model_path):
+                return pickle.load(open('data/model.pkl', 'rb'))
+            # return load_model(model_path)
         except OSError:
             print("The model file does not exist.")
             return None
@@ -85,48 +106,58 @@ class CNNHeuristic(Heuristic):
         if self.model is None:
             model = tf.keras.models.Sequential(
                 [
-                    tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='relu'),
+                    tf.keras.layers.Conv2D(filters=64, strides=(1, 1), kernel_size=(3, 3), padding='same',
+                                           activation='relu'),
+                    tf.keras.layers.Conv2D(filters=64, strides=(1, 1), kernel_size=(3, 3), padding='same',
+                                           activation='relu'),
+                    tf.keras.layers.MaxPooling2D((32, 32)),
+                    tf.keras.layers.Conv2D(filters=32, strides=(1, 1), kernel_size=(3, 3), padding='same',
+                                           activation='relu'),
+                    tf.keras.layers.Conv2D(filters=32, strides=(1, 1), kernel_size=(3, 3), padding='same',
+                                           activation='relu'),
+                    tf.keras.layers.MaxPooling2D((16, 16)),
+                    tf.keras.layers.Conv2D(filters=16, strides=(1, 1), kernel_size=(3, 3), padding='same',
+                                           activation='relu'),
+                    tf.keras.layers.Conv2D(filters=16, strides=(1, 1), kernel_size=(16, 16), padding='same',
+                                           activation='relu'),
                     tf.keras.layers.MaxPooling2D((2, 2)),
-                    tf.keras.layers.Conv2D(filters=64, kernel_size=(3, 3), padding='same', activation='relu'),
-                    tf.keras.layers.MaxPooling2D((2, 2)),
-                    tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3), padding='same', activation='relu'),
-                    tf.keras.layers.Flatten(),
-                    tf.keras.layers.Dense(32, activation='relu'),
+                    tf.keras.layers.Dense(512),
+                    tf.keras.layers.Dense(32),
                     tf.keras.layers.Dense(1)
                 ]
             )
-            early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=3, restore_best_weights=True)
-            # wandb = WandbCallback()
-            model.compile(optimizer='adam', loss='mse', run_eagerly=False,
-                          metrics=['mae', 'mse', 'accuracy'])
+            self.early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_mse', patience=5,
+                                                                   restore_best_weights=True)
+            # wandb.init()
+            # self.wandb = WandbCallback()
+            model.compile(optimizer=keras.optimizers.legacy.Adam(learning_rate=1e-2, decay=1e-6), loss='mse',
+                          run_eagerly=False,
+                          metrics=['mae', 'mse'])
             self.model = model
+
             self.__train__()
 
     def __train__(self):
-        data = []
-        labels = []
+        train_dataset = ImageDataset(max_data=1000).__call__()
+        val_dataset = ImageDataset(kind='val', max_data=200).__call__()
 
-        dataset = ImageDataset(max_data=10000)
-        data, labels = dataset()
-
-        data = np.array(data, dtype=np.float16)
-        labels = np.array(labels, dtype=np.float16)
-
-        # split the data into train and validation
-        train_data = data[:int(len(data) * 0.8)]
-        train_labels = labels[:int(len(labels) * 0.8)]
-        val_data = data[int(len(data) * 0.8):]
-        val_labels = labels[int(len(labels) * 0.8):]
+        # Add model input size based on the dataset
+        self.model.build((None, 1264, 1264, 3))
 
         # train the model
-        self.model.fit(train_data, train_labels, shuffle=True, batch_size=2, epochs=10, validation_data=(val_data, val_labels))
-        self.model.save('data/model.h5')
+        self.history = self.model.fit(train_dataset, shuffle=True, batch_size=2, callbacks=[self.early_stopping],
+                                      epochs=10, validation_data=val_dataset, verbose=1)
+        # self.model.save('data/model.h5')
+        with open('data/model.pkl', 'wb') as file:
+            pickle.dump(self.model, file)
+        with open('data/model_history.pkl', 'wb') as file:
+            pickle.dump(self.history.history, file)
 
         # evaluate the model
-        self.model.evaluate(val_data, val_labels, verbose=2)
+        res = self.model.evaluate(val_dataset, verbose=2)
 
         # make predictions
-        self.model.predict(val_data)
+        self.model.predict(val_dataset)
 
         # plot the model
         tf.keras.utils.plot_model(self.model, 'data/model.png', show_shapes=True)
