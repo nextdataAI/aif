@@ -24,8 +24,8 @@ class Greedy(Algorithm):
                 visited.append(node)
                 path.append(node)
                 if node == target:
-                    return path, list(visited), self.stop_timer()
+                    return local_state.get('pixel'), True, path, list(visited), self.stop_timer()
                 for neighbor in get_valid_moves(local_game_map, node):
                     queue.append(neighbor)
                 queue.sort(key=lambda x: self.h(x, target))
-        return path, list(visited), self.stop_timer()
+        return local_state.get('pixel'), False, path, list(visited), self.stop_timer()

@@ -25,12 +25,13 @@ class AStar(Algorithm):
         support_list = {}
 
         starting_state_g = 0
-        starting_state_h = self.h(start, target)
+        starting_state_h = self.h(start, target, local_state.get('pixel'), {start: (start, -1)})
         starting_state_f = starting_state_g + starting_state_h
 
         open_list.put((starting_state_f, (start, starting_state_g)))
         support_list[start] = starting_state_g
         parent = {start: None}
+        actions = {start: (start, -1)}
 
         while not open_list.empty():
             # get the node with lowest f
@@ -40,18 +41,19 @@ class AStar(Algorithm):
 
             if current == target:
                 path = self.build_path(parent, target)
-                return list(path), list(close_list), self.stop_timer()
+                return local_state.get('pixel'), True, list(path), list(close_list), self.stop_timer()
 
-            for neighbor in get_valid_moves(local_game_map, current):
+            for neighbor, action in get_valid_moves(local_game_map, current, 'both'):
                 # check if neighbor in close list, if so continue
                 if neighbor in close_list:
                     continue
 
                 # compute neighbor g, h and f values
                 neighbor_g = 1 + current_cost
-                neighbor_h = self.h(neighbor, target)
+                neighbor_h = self.h(neighbor, target, local_state.get('pixel'), actions)
                 neighbor_f = neighbor_g + neighbor_h
                 parent[neighbor] = current
+                actions[neighbor] = (current, action)
                 neighbor_entry = (neighbor_f, (neighbor, neighbor_g))
                 # if neighbor in open_list
                 if neighbor in support_list.keys():
@@ -63,7 +65,7 @@ class AStar(Algorithm):
                 open_list.put(neighbor_entry)
                 support_list[neighbor] = neighbor_g
 
-        return None, list(close_list), self.stop_timer()
+        return local_state.get('pixel'), False, None, list(close_list), self.stop_timer()
 
     @staticmethod
     def build_path(parent, target):

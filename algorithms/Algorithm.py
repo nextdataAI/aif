@@ -35,8 +35,9 @@ class Algorithm:
         self.stop = None
         self.start = None
         reward_manager = MyRewardManager()
-        self.env = gym.make(env_name, observation_keys=("chars", "pixel"), reward_manager=reward_manager,
-                            max_episode_steps=100)
+        self.env_name = env_name
+        self.env = gym.make(env_name, observation_keys=("chars", "pixel"), #reward_manager=reward_manager,
+                            max_episode_steps=1000)
         self.name = name
 
     def initialize_env(self, seed: int, informed: bool = True):

@@ -27,7 +27,7 @@ class FS(Algorithm):
                     queue.append(neighbor)
                     path.append(neighbor)
                     if neighbor == target or neighbor == '@':
-                        return list(path), list(visited), self.stop_timer()
+                        return local_state.get('pixel'), True, list(path), list(visited), self.stop_timer()
 
 
 class BFS(FS):

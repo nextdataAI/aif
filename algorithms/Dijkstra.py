@@ -36,7 +36,7 @@ class Dijkstra(Algorithm):
 
             if current == target:
                 path = self.build_path(parent, target)
-                return list(path), list(close_list), self.stop_timer()
+                return local_state.get('pixel'), True, list(path), list(close_list), self.stop_timer()
 
             for neighbor in get_valid_moves(local_game_map, current):
                 # check if neighbor in close list, if so continue
@@ -58,7 +58,7 @@ class Dijkstra(Algorithm):
                 open_list.put(neighbor_entry)
                 support_list[neighbor] = neighbor_g
 
-        return None, list(close_list), self.stop_timer()
+        return local_state.get('pixel'), False, None, list(close_list), self.stop_timer()
 
     def build_path(self, parent, target):
         path = []
