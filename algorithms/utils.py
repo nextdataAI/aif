@@ -43,7 +43,8 @@ def get_player_location(game_map: np.ndarray, symbol: str = "@"):
 
 def get_target_location(game_map: np.ndarray, symbol: str = ">") -> tuple[
     np.ndarray[Any, np.dtype[Union[np.signedinteger[Any], np.longlong]]],
-    np.ndarray[Any, np.dtype[Union[np.signedinteger[Any], np.longlong]]]]:
+    np.ndarray[Any, np.dtype[Union[np.signedinteger[Any], np.longlong]]]
+]:
     x, y = np.where(game_map == ord(symbol))
     return x[0], y[0]
 
@@ -169,7 +170,7 @@ def animate(fig, im, data):
 
 
 def get_distances(game_map: np.ndarray, target: Tuple[int, int] = None):
-    # retrive the player distance from the nearest walls in each direction
+    # retrieve the player distance from the nearest walls in each direction
     player_pos = get_player_location(game_map)
     x, y = player_pos
     # North
