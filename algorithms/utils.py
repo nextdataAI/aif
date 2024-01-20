@@ -195,13 +195,13 @@ def get_distances(game_map: np.ndarray, target: Tuple[int, int] = None):
 
 
 def compute_score(local_df, df):
-    local_df['explored'] = local_df['visited'].apply(lambda x: len(x))
-    local_df['solution'] = local_df['path'].apply(lambda x: len(x) if x is not None else 0)
+    local_df['explored'] = len(local_df['visited'])
+    local_df['solution'] = len(local_df['path']) if local_df['path'] is not None else 0
     local_df['path_score'] = (local_df['solution'] + 1) / local_df['explored']
     local_df['score'] = local_df['path'].apply(
-        lambda x: sum(abs(x[i][0] - x[i + 1][0]) + abs(x[i][1] - x[i + 1][1]) for i in range(len(x) - 1)))
-    max_score = local_df['score'].max()
-    local_df['score'] = np.maximum(0, 1 - local_df['path_score'] / max_score)
+        lambda x: sum(abs(x[i][0] - x[i + 1][0]) + abs(x[i][1] - x[i + 1][1]) for i in range(
+            len(x) - 1)) if x is not None else 0)
+    local_df['score'] = np.maximum(0, 1 - local_df['path_score'] / local_df['score'])
     df = pd.concat([df, local_df], ignore_index=True)
 
     return df
