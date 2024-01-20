@@ -10,7 +10,7 @@ from functools import partial
 
 __all__ = ['get_player_location', 'get_target_location', 'get_edges_location', 'is_wall', 'get_heuristic', 'animate',
            'get_valid_moves', 'actions_from_path', 'euclidean_distance', 'manhattan_distance', 'clear_screen',
-           'get_distances']
+           'get_distances', 'compute_score']
 
 
 def assign_scores_and_retrieve_ordered_list(paths_time_took_name: list):
@@ -192,3 +192,16 @@ def get_distances(game_map: np.ndarray, target: Tuple[int, int] = None):
     if target is not None:
         return [north, east, south, west, manhattan_distance(player_pos, target)]
     return [north, east, south, west]
+
+
+def compute_score(local_df, df):
+    local_df['explored'] = local_df['visited'].apply(lambda x: len(x))
+    local_df['solution'] = local_df['path'].apply(lambda x: len(x) if x is not None else 0)
+    local_df['path_score'] = (local_df['solution'] + 1) / local_df['explored']
+    local_df['score'] = local_df['path'].apply(
+        lambda x: sum(abs(x[i][0] - x[i + 1][0]) + abs(x[i][1] - x[i + 1][1]) for i in range(len(x) - 1)))
+    max_score = local_df['score'].max()
+    local_df['score'] = np.maximum(0, 1 - local_df['path_score'] / max_score)
+    df = pd.concat([df, local_df], ignore_index=True)
+
+    return df
