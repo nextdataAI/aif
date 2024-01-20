@@ -6,7 +6,7 @@ import keras.optimizers
 import wandb
 from PIL import Image as im
 import os
-from data.image_dataset import ImageDataset
+from data.dataset import ImageDataset
 from algorithms.heuristics.Heuristic import Heuristic
 import numpy as np
 import tensorflow as tf
@@ -58,7 +58,7 @@ class CNNHeuristic(Heuristic):
         Returns:
             float: The heuristic value of the state.
         """
-        game_map = self.__move_player__(args[0], args[2], args[3])
+        game_map = self.__move_player__(args[0], args[2].get('pixel'), args[3])
         self.__initialize__(game_map)
         return self.model.predict(game_map)
 
@@ -147,7 +147,7 @@ class CNNHeuristic(Heuristic):
         # train the model
         self.history = self.model.fit(train_dataset, shuffle=True, batch_size=2, callbacks=[self.early_stopping],
                                       epochs=10, validation_data=val_dataset, verbose=1)
-        # self.model.save('data/model.h5')
+        self.model.save('data/model.h5')
         with open('data/model.pkl', 'wb') as file:
             pickle.dump(self.model, file)
         with open('data/model_history.pkl', 'wb') as file:

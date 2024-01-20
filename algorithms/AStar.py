@@ -3,16 +3,18 @@ import gym
 import minihack
 from .utils import get_valid_moves, get_heuristic
 from typing import Union
+from .heuristics.Heuristic import Heuristic
+from .heuristics.Manhattan import Manhattan
 from .Algorithm import Algorithm
 
 __all__ = ['AStar']
 
 
 class AStar(Algorithm):
-    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", h: Union[callable, str] = "manhattan",
+    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", h: Union[callable, str, Heuristic] = Manhattan(),
                  name: str = "AStar"):
         super().__init__(env_name, name)
-        self.h = get_heuristic(h) if isinstance(h, str) else h
+        self.h = get_heuristic(h) if isinstance(h, str) else h if isinstance(h, Heuristic) else h
 
     def __call__(self, seed: int):
         self.start_timer()
@@ -25,7 +27,7 @@ class AStar(Algorithm):
         support_list = {}
 
         starting_state_g = 0
-        starting_state_h = self.h(start, target, local_state.get('pixel'), {start: (start, -1)})
+        starting_state_h = self.h(start, target, local_state, {start: (start, -1)})
         starting_state_f = starting_state_g + starting_state_h
 
         open_list.put((starting_state_f, (start, starting_state_g)))
@@ -43,14 +45,14 @@ class AStar(Algorithm):
                 path = self.build_path(parent, target)
                 return local_state.get('pixel'), True, list(path), list(close_list), self.stop_timer()
 
-            for neighbor, action in get_valid_moves(local_game_map, current, 'both'):
+            for action, neighbor in get_valid_moves(local_game_map, current, 'both'):
                 # check if neighbor in close list, if so continue
                 if neighbor in close_list:
                     continue
 
                 # compute neighbor g, h and f values
                 neighbor_g = 1 + current_cost
-                neighbor_h = self.h(neighbor, target, local_state.get('pixel'), actions)
+                neighbor_h = self.h(neighbor, target, local_state, actions)
                 neighbor_f = neighbor_g + neighbor_h
                 parent[neighbor] = current
                 actions[neighbor] = (current, action)

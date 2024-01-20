@@ -8,4 +8,5 @@ from .QLSTM import QLSTM
 from .QLearning import Qlearning
 from .AlphaBeta import AlphaBeta
 from .Genetic import Genetic
-from algorithms.heuristics.pseudo_heuristics import CNNHeuristic
+from algorithms.pseudo_heuristics import CNNHeuristic
+from .MiniMax import MiniMax

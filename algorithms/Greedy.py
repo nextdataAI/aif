@@ -1,7 +1,7 @@
 from typing import Union
 from .Algorithm import Algorithm
 from gym.core import Env
-from .utils import get_valid_moves, manhattan_distance, get_heuristic
+from algorithms.utils import get_valid_moves, manhattan_distance, get_heuristic
 
 __all__ = ['Greedy']
 

@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import animation
 from functools import partial
+from .heuristics import Manhattan, Euclidean
 
 __all__ = ['get_player_location', 'get_target_location', 'get_edges_location', 'is_wall', 'get_heuristic', 'animate',
            'get_valid_moves', 'actions_from_path', 'euclidean_distance', 'manhattan_distance', 'clear_screen',
@@ -150,8 +151,8 @@ def manhattan_distance_with_obstacles(point1: Tuple[int, int], point2: Tuple[int
 
 
 heuristics = {
-    'manhattan': manhattan_distance,
-    'euclidean': euclidean_distance
+    'manhattan': Manhattan(),
+    'euclidean': Euclidean(),
 }
 
 
