@@ -10,6 +10,8 @@ from .Algorithm import Algorithm
 import matplotlib.pyplot as plt
 from gym import Env
 
+__all__ = ['QLSTM']
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 
 
@@ -200,7 +202,7 @@ class DQNAgent(nn.Module):
         optimizer.step()
 
 
-def train(agent: DQNAgent, env: Env, single_state: np.ndarray, target: (int, int),
+def train(agent: DQNAgent, env: Env, single_state: np.ndarray, start: (int, int), target: (int, int),
           batch_size: int = 1, sequence_length: int = 4):
 
     optimizer = torch.optim.Adam(agent.parameters(), lr=1e-3, amsgrad=True)
@@ -215,7 +217,7 @@ def train(agent: DQNAgent, env: Env, single_state: np.ndarray, target: (int, int
     target_reached = False
     total_reward = 0
     frame_idx = 0
-    explored_positions = []
+    explored_positions = [start]
 
     # Run until an episode is done
     while not done:
@@ -227,7 +229,10 @@ def train(agent: DQNAgent, env: Env, single_state: np.ndarray, target: (int, int
         # Take the action and get the new state, reward and done flag
         next_state, reward, done, _ = env.step(action)
         agent_position = get_player_location(next_state['chars'])
-        explored_positions.append(agent_position)
+        if agent_position == (None, None):
+            agent_position = target
+        if agent_position not in explored_positions:
+            explored_positions.append(agent_position)
         next_state = next_state['chars'].flatten()
 
         if reward == 1:
@@ -264,11 +269,12 @@ class QLSTM(Algorithm):
 
     def __call__(self, seed: int):
         self.start_timer()
-        local_env, _, local_game_map, _, target = super().initialize_env(seed)
+        local_env, _, local_game_map, start, target = super().initialize_env(seed)
         input_dim = local_game_map.shape[0] * local_game_map.shape[1]
         self.agent = DQNAgent(input_dim, self.batch_size, self.agent)
-        target_reached, explored_positions = train(self.agent, local_env, local_game_map, target, self.batch_size,
+        target_reached, explored_positions = train(self.agent, local_env, local_game_map, start, target, self.batch_size,
                                                    self.past_states_seq_len)
         print(target_reached)
-
-        return None, explored_positions, self.stop_timer()
+        if not target_reached:
+            return None, explored_positions, self.stop_timer()
+        return explored_positions, explored_positions, self.stop_timer()
