@@ -1,7 +1,11 @@
 import sys
+from pathlib import Path
 import pandas as pd
-from algorithms import *
 import numpy as np
+sys.path.append(str(Path.cwd().parent))
+from algorithms import *
+
+
 df = pd.DataFrame(columns=['name', 'path', 'visited', 'time', 'maze', 'explored', 'solution', 'score'], dtype=object)
 
 num_examples = 10
@@ -10,13 +14,13 @@ num_examples = 10
 env_name = "MiniHack-MazeWalk-Mapped-15x15-v0"
 
 algorithms = [
-    BFS(env_name),
-    DFS(env_name),
-    AStar(env_name),
-    AStar(env_name, h='euclidean', name='ASTAR-EUCLIDEAN'),
-    Greedy(env_name),
-    Dijkstra(env_name),
-    # QLSTM(env_name),
+    # BFS(env_name),
+    # DFS(env_name),
+    # AStar(env_name),
+    # AStar(env_name, h='euclidean', name='ASTAR-EUCLIDEAN'),
+    # Greedy(env_name),
+    # Dijkstra(env_name),
+    QLSTM(env_name),
     # Genetic(env_name),
     # Qlearning(env_name)
 ]
