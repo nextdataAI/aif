@@ -5,6 +5,7 @@ from .Dijkstra import *
 from .Algorithm import *
 from .utils import *
 from .QLSTM import *
+from .QNN import *
 from .QLearning import Qlearning
 from .AlphaBeta import AlphaBeta
 from .Genetic import Genetic

@@ -21,6 +21,7 @@ algorithms = [
     # Greedy(env_name),
     # Dijkstra(env_name),
     QLSTM(env_name),
+    # QNN(env_name),
     # Genetic(env_name),
     # Qlearning(env_name)
 ]
