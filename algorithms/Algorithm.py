@@ -1,10 +1,9 @@
+import time
 from typing import Any
 
 import gym
-import minihack
-from .utils import get_player_location, get_target_location, manhattan_distance
-import matplotlib.pyplot as plt
-import time
+
+from .utils import get_player_location, get_target_location
 
 __all__ = ['Algorithm']
 
@@ -15,8 +14,8 @@ class Algorithm:
     def __init__(self, env_name: str, name: str = "Algorithm"):
         self.stop = None
         self.start = None
-        self.env = gym.make(env_name,
-                            observation_keys=("chars", "pixel"),
+        self.env_name = env_name
+        self.env = gym.make(env_name, observation_keys=("chars", "pixel"), #reward_manager=reward_manager,
                             max_episode_steps=1000)
         self.name = name
 

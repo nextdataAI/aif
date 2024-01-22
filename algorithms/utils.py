@@ -1,16 +1,19 @@
-from typing import Tuple, List, Any, Union
-import pandas as pd
-import math
+from functools import partial
 from platform import system as system_name  # Returns the system/OS name
 from subprocess import call as system_call  # Execute a shell command
+from typing import Tuple, List, Any, Union
+
 import numpy as np
-from matplotlib import pyplot as plt
+import pandas as pd
 from matplotlib import animation
-from functools import partial
+from matplotlib import pyplot as plt
+
+from .heuristics import Manhattan, Euclidean, SManhattan, Chebysev
+from .pseudo_heuristics import NNManhattan
 
 __all__ = ['get_player_location', 'get_target_location', 'get_edges_location', 'is_wall', 'get_heuristic', 'animate',
-           'get_valid_moves', 'actions_from_path', 'euclidean_distance', 'manhattan_distance', 'clear_screen',
-           'get_distances', 'compute_score']
+           'get_valid_moves', 'actions_from_path', 'clear_screen', 'get_distances', 'compute_score']
+
 
 
 def assign_scores_and_retrieve_ordered_list(paths_time_took_name: list):
@@ -41,10 +44,7 @@ def get_player_location(game_map: np.ndarray, symbol: str = "@"):
     return (x[0], y[0]) if len(x) > 0 else (None, None)
 
 
-def get_target_location(game_map: np.ndarray, symbol: str = ">") -> tuple[
-    np.ndarray[Any, np.dtype[Union[np.signedinteger[Any], np.longlong]]],
-    np.ndarray[Any, np.dtype[Union[np.signedinteger[Any], np.longlong]]]
-]:
+def get_target_location(game_map: np.ndarray, symbol: str = ">"):
     x, y = np.where(game_map == ord(symbol))
     return x[0], y[0]
 
@@ -71,24 +71,32 @@ def get_valid_moves(game_map: np.ndarray, current_position: Tuple[int, int], mod
             valid.append((x, y - 1))
         elif mode == 'action':
             valid.append(0)
+        elif mode == 'both':
+            valid.append((0, (x, y - 1)))
         # East
     if x + 1 < x_limit and not is_wall(game_map[x + 1, y]):
         if mode == 'coord':
             valid.append((x + 1, y))
         elif mode == 'action':
             valid.append(1)
+        elif mode == 'both':
+            valid.append((1, (x + 1, y)))
         # South
     if y + 1 < y_limit and not is_wall(game_map[x, y + 1]):
         if mode == 'coord':
             valid.append((x, y + 1))
         elif mode == 'action':
             valid.append(2)
+        elif mode == 'both':
+            valid.append((2, (x, y + 1)))
         # West
     if x - 1 > 0 and not is_wall(game_map[x - 1, y]):
         if mode == 'coord':
             valid.append((x - 1, y))
         elif mode == 'action':
             valid.append(3)
+        elif mode == 'both':
+            valid.append((3, (x - 1, y)))
 
     return valid
 
@@ -121,27 +129,19 @@ def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> Li
     return actions
 
 
-def euclidean_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> float:
-    x1, y1 = point1
-    x2, y2 = point2
-    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-
-
-def manhattan_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
-    x1, y1 = point1
-    x2, y2 = point2
-    return abs(x1 - x2) + abs(y1 - y2)
-
-
 heuristics = {
-    'manhattan': manhattan_distance,
-    'euclidean': euclidean_distance
+    'manhattan': Manhattan(),
+    'euclidean': Euclidean(),
+    'smanhattan': SManhattan(),
+    'chebysev': Chebysev(),
+    'nnmanhattan': NNManhattan(),
 }
 
 
 def get_heuristic(heuristic: str):
-    if heuristic in heuristics.keys():
-        return heuristics[heuristic]
+    if heuristic.lower() in heuristics.keys():
+        h = heuristics[heuristic.lower()]
+        return h
     else:
         raise Exception("Heuristic not supported!")
 
@@ -169,8 +169,8 @@ def animate(fig, im, data):
     plt.show()
 
 
-def get_distances(game_map: np.ndarray, target: Tuple[int, int] = None):
-    # retrieve the player distance from the nearest walls in each direction
+def get_distances(game_map: np.ndarray):
+    # retrive the player distance from the nearest walls in each direction
     player_pos = get_player_location(game_map)
     x, y = player_pos
     # North
@@ -178,21 +178,30 @@ def get_distances(game_map: np.ndarray, target: Tuple[int, int] = None):
     east = -1
     south = -1
     west = -1
+    north_east = -1
+    north_west = -1
+    south_east = -1
+    south_west = -1
     for i, j in enumerate(game_map):
         if north == -1 and is_wall(game_map[x, y - i]):
-            north = i
+            north = i - 1
         if east == -1 and is_wall(game_map[x + i, y]):
-            east = i
+            east = i - 1
         if south == -1 and is_wall(game_map[x, y + i]):
-            south = i
+            south = i - 1
         if west == -1 and is_wall(game_map[x - i, y]):
-            west = i
-        if north != -1 and east != -1 and south != -1 and west != -1:
+            west = i - 1
+        if north_east == -1 and is_wall(game_map[x + i, y - i]):
+            north_east = i - 1
+        if north_west == -1 and is_wall(game_map[x - i, y - i]):
+            north_west = i - 1
+        if south_east == -1 and is_wall(game_map[x + i, y + i]):
+            south_east = i - 1
+        if south_west == -1 and is_wall(game_map[x - i, y + i]):
+            south_west = i - 1
+        if (north != -1 and east != -1 and south != -1 and west != -1 and north_east != -1
+                and north_west != -1 and south_east != -1 and south_west != -1):
             break
-    if target is not None:
-        return [north, east, south, west, manhattan_distance(player_pos, target)]
-    return [north, east, south, west]
-
 
 def compute_score(local_df, df):
     local_df['explored'] = len(local_df['visited'])

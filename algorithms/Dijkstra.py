@@ -1,8 +1,8 @@
 from queue import PriorityQueue
-from gym.core import Env
+from typing import Optional, Any
+
 from .Algorithm import Algorithm
 from .utils import get_valid_moves
-from typing import Optional, Any
 
 __all__ = ['Dijkstra']
 
@@ -24,7 +24,7 @@ class Dijkstra(Algorithm):
         starting_state_g = 0
         starting_state_f = starting_state_g
 
-        open_list.put((starting_state_f, (start, starting_state_g)))
+        open_list.put(starting_state_f)
         support_list[start] = starting_state_g
         parent = {start: None}
 
@@ -36,7 +36,7 @@ class Dijkstra(Algorithm):
 
             if current == target:
                 path = self.build_path(parent, target)
-                return list(path), list(close_list), self.stop_timer()
+                return True, list(path), list(close_list), self.stop_timer()
 
             for neighbor in get_valid_moves(local_game_map, current):
                 # check if neighbor in close list, if so continue
@@ -58,9 +58,10 @@ class Dijkstra(Algorithm):
                 open_list.put(neighbor_entry)
                 support_list[neighbor] = neighbor_g
 
-        return None, list(close_list), self.stop_timer()
+        return False, None, list(close_list), self.stop_timer()
 
-    def build_path(self, parent, target):
+    @staticmethod
+    def build_path(parent, target):
         path = []
         while target is not None:
             path.append(target)

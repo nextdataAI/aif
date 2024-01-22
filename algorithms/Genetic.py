@@ -1,55 +1,78 @@
-import pickle
-
-import numpy as np
-from .Algorithm import Algorithm
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor
+
+from .Algorithm import Algorithm
+from .utils import get_player_location, get_valid_moves
+
+try:
+    import mlx as np
+    print("Using MLX")
+except ImportError:
+    print("Using numpy")
+    import numpy as np
+
 
 class Brain(Algorithm):
     def __init__(self, env_name, input_size, output_size):
         super().__init__(env_name, name="Brain")
         self.weights = np.random.uniform(-1, 1, (input_size, output_size))
         self.bias = np.random.uniform(-1, 1, (1, output_size))
+        self.fitness_score = -np.inf
 
     def __call__(self, seed):
         local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
         done = False
+        total_reward = 0
         while not done:
             # Get the best move
-            best_move = np.argmax(self.get_action(local_state['chars']))
+            best_move = self.get_action(local_state['chars'])
             # Make the move
             local_state, reward, done, info = local_env.step(best_move)
             # Update the game map
             local_game_map[best_move] = 1
             # Render the environment
+            total_reward += reward
             if done:
-                return reward
+                return total_reward
 
     def get_action(self, state):
-        return np.dot(np.array(state).flatten(), self.weights) + self.bias
+        result = (np.dot(np.array(state).flatten(), self.weights) + self.bias)[0]
+        while True:
+            out = np.argmax(result)
+            valid_moves = get_valid_moves(state, get_player_location(state), 'action')
+            if out in valid_moves:
+                break
+            result[out] = float('-inf')
+
+        return out
 
 
 class Genetic(Algorithm):
     def __init__(self, env_name):
         super().__init__(env_name, name="Genetic")
-        self.population_size = 100
+        self.population_size = 50
         self.population = []
         self.mutation_rate = 0.02
+        self.max_generations = 2
         self.env_name = env_name
         self.generation = 0
         self.best = None
         self.best_fitness = -np.inf
 
     def initialize_population(self):
-        for _ in range(self.population_size):
+        self.population = []
+        self.generation = 0
+        if self.best:
+            self.best.fitness_score = 0
+            self.population.append(self.best)
+            self.best_fitness = 0
+        for _ in range(self.population_size - 1):
             self.population.append(Brain(self.env_name, self.input_size, self.output_size))
 
     def run(self):
         self.initialize_population()
-        with tqdm(total=self.population_size*self.population_size, disable=False) as pbar:
-            for _ in range(100):
+        with tqdm(total=self.population_size * self.max_generations, disable=False) as pbar:
+            for _ in range(self.max_generations):
                 self.generation += 1
-                pbar.set_description(f"Generation: {self.generation} | Best Fitness: {self.best_fitness}")
                 self.fitness(pbar=pbar)
                 self.selection()
                 self.crossover()
@@ -67,6 +90,9 @@ class Genetic(Algorithm):
                 self.best_fitness = rocket.fitness_score
                 self.best = rocket
             pbar.update(1)
+            pbar.set_description(f"Generation: {self.generation} | Best Fitness: {self.best_fitness}")
+            if self.best_fitness == 1.0:
+                break
 
     def selection(self):
         self.population.sort(key=lambda x: x.fitness_score, reverse=True)
@@ -97,15 +123,16 @@ class Genetic(Algorithm):
         self.input_size = local_game_map.shape[0] * local_game_map.shape[1]
         self.output_size = 4
         self.seed = seed
-        self.run() if self.best is None else None
-        with open('best_brain.npy', 'wb') as f:
-            pickle.dump(self.best, f)
+        self.run()
+        # with open('best_brain.npy', 'wb') as f:
+        #     self.best.env = None
+        #     pickle.dump(self.best, f)
         done = False
         path = []
         while not done:
             # Get the best move
-            agent_pos = np.where(local_game_map == '@')
-            best_move = np.argmax(self.get_action(local_state['chars']))
+            agent_pos = get_player_location(local_state['chars'])
+            best_move = self.get_action(local_state['chars'])
             # Make the move
             local_state, reward, done, info = local_env.step(best_move)
             # Update the game map
@@ -115,4 +142,4 @@ class Genetic(Algorithm):
             path.append(agent_pos)
 
             if done:
-                return path, path, self.stop_timer()
+                return True if reward == 1.0 else False, path, path, self.stop_timer()

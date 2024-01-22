@@ -1,18 +1,19 @@
 from queue import PriorityQueue
-import gym
-import minihack
-from .utils import get_valid_moves, get_heuristic
 from typing import Union
+
 from .Algorithm import Algorithm
+from .heuristics.Heuristic import Heuristic
+from .heuristics.Manhattan import Manhattan
+from .utils import get_valid_moves, get_heuristic
 
 __all__ = ['AStar']
 
 
 class AStar(Algorithm):
-    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", h: Union[callable, str] = "manhattan",
+    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", h: Union[callable, str, Heuristic] = Manhattan(),
                  name: str = "AStar"):
         super().__init__(env_name, name)
-        self.h = get_heuristic(h) if isinstance(h, str) else h
+        self.h = get_heuristic(h) if isinstance(h, str) else h if isinstance(h, Heuristic) else h
 
     def __call__(self, seed: int):
         self.start_timer()
@@ -40,9 +41,9 @@ class AStar(Algorithm):
 
             if current == target:
                 path = self.build_path(parent, target)
-                return list(path), list(close_list), self.stop_timer()
+                return True, list(path), list(close_list), self.stop_timer()
 
-            for neighbor in get_valid_moves(local_game_map, current):
+            for action, neighbor in get_valid_moves(local_game_map, current, 'both'):
                 # check if neighbor in close list, if so continue
                 if neighbor in close_list:
                     continue
@@ -63,7 +64,7 @@ class AStar(Algorithm):
                 open_list.put(neighbor_entry)
                 support_list[neighbor] = neighbor_g
 
-        return None, list(close_list), self.stop_timer()
+        return False, None, list(close_list), self.stop_timer()
 
     @staticmethod
     def build_path(parent, target):
