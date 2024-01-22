@@ -1,10 +1,9 @@
+import time
 from typing import Any
 
 import gym
-import minihack
-from .utils import get_player_location, get_target_location, manhattan_distance
-import matplotlib.pyplot as plt
-import time
+
+from .utils import get_player_location, get_target_location
 
 __all__ = ['Algorithm']
 
@@ -22,8 +21,6 @@ class MyRewardManager(RewardManager):
         player_pos = get_player_location(state[1])
         if player_pos not in self.memory:
             self.memory.append(player_pos)
-        if manhattan_distance(player_pos, get_target_location(state[1])) < self.previous_distance:
-            return 0.5
         if player_pos == get_target_location(state[1]):
             return 1
         else:

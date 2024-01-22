@@ -2,7 +2,7 @@ from .Heuristic import Heuristic
 
 class Manhattan(Heuristic):
     def __init__(self):
-        super().__init__(name="Manhattan")
+        super().__init__(name="Manhattan", formula=lambda x1, y1, x2, y2: abs(x1 - x2) + abs(y1 - y2))
 
     def __call__(self, *args) -> int:
         """
@@ -15,4 +15,4 @@ class Manhattan(Heuristic):
         target = args[1]
         x1, y1 = start
         x2, y2 = target
-        return abs(x1 - x2) + abs(y1 - y2)
+        return self.formula(x1, y1, x2, y2)

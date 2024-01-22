@@ -1,12 +1,15 @@
-from .utils import get_player_location, get_valid_moves
-from .Algorithm import Algorithm
 from tqdm import tqdm
-try :
-    print("Using MLX")
+
+from .Algorithm import Algorithm
+from .utils import get_player_location, get_valid_moves
+
+try:
     import mlx as np
+    print("Using MLX")
 except ImportError:
     print("Using numpy")
     import numpy as np
+
 
 class Brain(Algorithm):
     def __init__(self, env_name, input_size, output_size):

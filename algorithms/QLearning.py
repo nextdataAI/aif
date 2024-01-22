@@ -1,6 +1,7 @@
 import numpy as np
-from .utils import get_player_location, clear_screen
+
 from .Algorithm import Algorithm
+from .utils import get_player_location, clear_screen
 
 __all__ = ["Qlearning"]
 
@@ -34,7 +35,7 @@ class Qlearning(Algorithm):
         path = []
         for i in range(100):
             while not done:
-                if self.render :
+                if self.render:
                     clear_screen()
                     local_env.render()
                 s_t1, r_t, done, info = local_env.step(a_t)

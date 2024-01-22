@@ -4,7 +4,7 @@ import random
 import numpy as np
 
 from .Algorithm import Algorithm
-from .utils import get_valid_moves, manhattan_distance, get_player_location, clear_screen
+from .utils import get_valid_moves, get_player_location
 
 __all__ = ['AlphaBeta']
 

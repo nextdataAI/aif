@@ -53,11 +53,25 @@ class AsciiDataset:
         # Process file paths and labels
         if max_data is not None:
             df = df.sample(max_data, random_state=42)
-        df['file_name'] = self.base_path + df['file_name'] + '.ascii'  # Adjust the path to your images
+        df['file_name'] = self.base_path + df['file_name'] + '.npy'  # Adjust the path to your images
         df['label'] = df['label'].astype(int)
-        df['map'] = df['file_name'].apply(lambda x: open(x).read())
-        self.maps = df['map'].to_numpy(dtype='int')
-        self.labels = df['label'].to_numpy(dtype='float32')
+        df['matrix'] = df['file_name'].apply(lambda x: np.load(x))
+        self.maps = np.array(df['matrix'])
+        self.labels = df['label'].to_numpy(dtype='int32')
 
     def __call__(self, *args, **kwargs):
+        self.maps = np.array(value.ravel()/255 for value in self.maps)
+        return self.maps, self.labels
+
+    def __call_2__(self):
+        new_maps = []
+        new_labels = []
+        for elem, label in zip(self.maps, self.labels):
+            start = np.where(elem == ord('@'))
+            end = np.where(elem == ord('>'))
+            elem = np.array([start[0], start[1], end[0], end[1]])
+            new_maps.append(elem)
+            new_labels.append((abs(start[0] - end[0]) * 2 + abs(start[1] - end[1]) * 2))
+        self.maps = np.array(new_maps)
+        self.labels = np.array(new_labels)
         return self.maps, self.labels

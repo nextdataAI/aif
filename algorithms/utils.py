@@ -1,16 +1,18 @@
-from typing import Tuple, List, Any, Union
-import pandas as pd
-import math
+from functools import partial
 from platform import system as system_name  # Returns the system/OS name
 from subprocess import call as system_call  # Execute a shell command
+from typing import Tuple, List, Any, Union
+
 import numpy as np
-from matplotlib import pyplot as plt
+import pandas as pd
 from matplotlib import animation
-from functools import partial
-from .heuristics import Manhattan, Euclidean
+from matplotlib import pyplot as plt
+
+from .heuristics import Manhattan, Euclidean, SManhattan, Chebysev
+from .pseudo_heuristics import NNManhattan
 
 __all__ = ['get_player_location', 'get_target_location', 'get_edges_location', 'is_wall', 'get_heuristic', 'animate',
-           'get_valid_moves', 'actions_from_path', 'euclidean_distance', 'manhattan_distance', 'clear_screen',
+           'get_valid_moves', 'actions_from_path', 'clear_screen',
            'get_distances']
 
 
@@ -127,38 +129,19 @@ def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> Li
     return actions
 
 
-def euclidean_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> float:
-    x1, y1 = point1
-    x2, y2 = point2
-    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-
-
-def manhattan_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
-    x1, y1 = point1
-    x2, y2 = point2
-    return abs(x1 - x2) + abs(y1 - y2)
-
-
-def manhattan_distance_with_obstacles(point1: Tuple[int, int], point2: Tuple[int, int], game_map: np.ndarray) -> float:
-    x1, y1 = point1
-    x2, y2 = point2
-    out = 0
-    for i in range(x1, x2):
-        for j in range(y1, y2):
-            if is_wall(game_map[i, j]):
-                out += 1
-    return - (abs(x1 - x2) + abs(y1 - y2) + out)
-
-
 heuristics = {
     'manhattan': Manhattan(),
     'euclidean': Euclidean(),
+    'smanhattan': SManhattan(),
+    'chebysev': Chebysev(),
+    'nnmanhattan': NNManhattan(),
 }
 
 
 def get_heuristic(heuristic: str):
-    if heuristic in heuristics.keys():
-        return heuristics[heuristic]
+    if heuristic.lower() in heuristics.keys():
+        h = heuristics[heuristic.lower()]
+        return h
     else:
         raise Exception("Heuristic not supported!")
 
