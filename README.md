@@ -6,7 +6,6 @@
     - [x] DFS
     - [x] Greedy
     - [X] A*
-    - [X] A*
     - &#9744; MiniMax
     - &#9744; Alpha-Beta
     - &#9744; Monte Carlo Tree Search

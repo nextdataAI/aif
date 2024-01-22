@@ -8,12 +8,8 @@ import pandas as pd
 from matplotlib import animation
 from matplotlib import pyplot as plt
 
-from .heuristics import Manhattan, Euclidean, SManhattan, Chebysev
-from .pseudo_heuristics import NNManhattan
-
-__all__ = ['get_player_location', 'get_target_location', 'get_edges_location', 'is_wall', 'get_heuristic', 'animate',
+__all__ = ['get_player_location', 'get_target_location', 'get_edges_location', 'is_wall', 'animate',
            'get_valid_moves', 'actions_from_path', 'clear_screen', 'get_distances', 'compute_score']
-
 
 
 def assign_scores_and_retrieve_ordered_list(paths_time_took_name: list):
@@ -129,23 +125,6 @@ def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> Li
     return actions
 
 
-heuristics = {
-    'manhattan': Manhattan(),
-    'euclidean': Euclidean(),
-    'smanhattan': SManhattan(),
-    'chebysev': Chebysev(),
-    'nnmanhattan': NNManhattan(),
-}
-
-
-def get_heuristic(heuristic: str):
-    if heuristic.lower() in heuristics.keys():
-        h = heuristics[heuristic.lower()]
-        return h
-    else:
-        raise Exception("Heuristic not supported!")
-
-
 def clear_screen():
     """
     Clears the terminal screen.
@@ -202,6 +181,7 @@ def get_distances(game_map: np.ndarray):
         if (north != -1 and east != -1 and south != -1 and west != -1 and north_east != -1
                 and north_west != -1 and south_east != -1 and south_west != -1):
             break
+
 
 def compute_score(local_df, df):
     local_df['explored'] = len(local_df['visited'])
