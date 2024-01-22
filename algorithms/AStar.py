@@ -2,9 +2,10 @@ from queue import PriorityQueue
 from typing import Union
 
 from .Algorithm import Algorithm
+from .HeuristicsUtils import get_heuristic
 from .heuristics.Heuristic import Heuristic
 from .heuristics.Manhattan import Manhattan
-from .utils import get_valid_moves, get_heuristic
+from .utils import get_valid_moves
 
 __all__ = ['AStar']
 

@@ -1,14 +1,14 @@
 import sys
 from pathlib import Path
+
 sys.path.append(str(Path.cwd().parent))
 
 from typing import Callable
+from algorithms import MiniMax
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-
-from algorithms import *
 
 dft = pd.DataFrame(
     columns=['name', 'solved', 'path', 'visited', 'time', 'maze', 'seed', 'path_length', 'explored'],
@@ -20,12 +20,11 @@ env_name1 = 'MiniHack-MazeWalk-Mapped-45x19-v0'
 env_name2 = "MiniHack-MazeWalk-Mapped-15x15-v0"
 env_name3 = "MiniHack-MazeWalk-Mapped-9x9-v0"
 
-
 # NNHeuristic1 = NNManhattan(model='NNManhattan')
 
 algorithms = [
 
-    QLSTM(env_name),
+    # QLSTM(env_name3),
 
     # AStar(env_name1, name='ASTAR-Manhattan-Env1'),
     # AStar(env_name2, name='ASTAR-Manhattan-Env2'),
@@ -59,7 +58,6 @@ algorithms = [
     # Greedy(env_name2, h='smanhattan', name='GREEDY-SManhattan-Env2'),
     # Greedy(env_name3, h='smanhattan', name='GREEDY-SManhattan-Env3'),
 
-
     # Dijkstra(env_name1, name='DIJKSTRA-Env1'),
     # Dijkstra(env_name2, name='DIJKSTRA-Env2'),
     # Dijkstra(env_name3, name='DIJKSTRA-Env3'),
@@ -70,7 +68,7 @@ algorithms = [
 
     # MiniMax(env_name1),
     # MiniMax(env_name2),
-    # MiniMax(env_name3),
+    MiniMax(env_name3),
 
     # QLSTM(env_name),
     # Genetic(env_name),
@@ -105,6 +103,4 @@ with tqdm(total=num_examples * len(algorithms)) as pbar:
         else:
             dft = pd.concat([dft, df])
 
-
 dft.to_csv('results_all2.csv')
-

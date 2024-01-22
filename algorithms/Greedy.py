@@ -1,7 +1,8 @@
 from typing import Union
 
-from algorithms.utils import get_valid_moves, get_heuristic
+from algorithms.utils import get_valid_moves
 from .Algorithm import Algorithm
+from .HeuristicsUtils import get_heuristic
 from .heuristics.Heuristic import Heuristic
 
 __all__ = ['Greedy']
