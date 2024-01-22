@@ -1,4 +1,7 @@
 import sys
+from pathlib import Path
+sys.path.append(str(Path.cwd().parent))
+
 from typing import Callable
 
 import numpy as np
@@ -21,6 +24,9 @@ env_name3 = "MiniHack-MazeWalk-Mapped-9x9-v0"
 # NNHeuristic1 = NNManhattan(model='NNManhattan')
 
 algorithms = [
+
+    QLSTM(env_name),
+
     # AStar(env_name1, name='ASTAR-Manhattan-Env1'),
     # AStar(env_name2, name='ASTAR-Manhattan-Env2'),
     # AStar(env_name3, name='ASTAR-Manhattan-Env3'),
@@ -64,7 +70,7 @@ algorithms = [
 
     # MiniMax(env_name1),
     # MiniMax(env_name2),
-    MiniMax(env_name3),
+    # MiniMax(env_name3),
 
     # QLSTM(env_name),
     # Genetic(env_name),
@@ -79,8 +85,6 @@ def call(algorithm: Callable, seed: int, i: int, name: str, env_name: str, pbar:
     return output
 
 
-results = []
-mean = 0
 with tqdm(total=num_examples * len(algorithms)) as pbar:
     for i in range(num_examples):
         rand_seed = np.random.randint(0, sys.maxsize)
@@ -101,16 +105,6 @@ with tqdm(total=num_examples * len(algorithms)) as pbar:
         else:
             dft = pd.concat([dft, df])
 
-        # mean = sum([np.mean([result.solved]) for result in results])/len(results)
-        # pbar.set_description(f'Completed Maze {i}, Completed Maze Solved: {round(np.mean([results[-1].solved]), 3)}, Mean: {round(mean, 3)}')
-# Drop pixels column
+
 dft.to_csv('results_all2.csv')
 
-# df = pd.concat(results).reset_index(drop=True)
-# df.to_csv('results_all.csv')
-# df = df[['name', 'time', 'explored', 'solution', 'ex_sol_score', 'score']]
-dft = dft.groupby('name').agg(
-    {'time': ['mean', 'std'], 'explored': ['mean', 'std'], 'path_length': ['mean', 'std']})
-dft.columns = ['_'.join(col) for col in dft.columns.values]
-dft = dft.reset_index()
-dft.to_csv('results2.csv')

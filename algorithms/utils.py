@@ -12,8 +12,8 @@ from .heuristics import Manhattan, Euclidean, SManhattan, Chebysev
 from .pseudo_heuristics import NNManhattan
 
 __all__ = ['get_player_location', 'get_target_location', 'get_edges_location', 'is_wall', 'get_heuristic', 'animate',
-           'get_valid_moves', 'actions_from_path', 'clear_screen',
-           'get_distances']
+           'get_valid_moves', 'actions_from_path', 'clear_screen', 'get_distances', 'compute_score']
+
 
 
 def assign_scores_and_retrieve_ordered_list(paths_time_took_name: list):
@@ -202,7 +202,15 @@ def get_distances(game_map: np.ndarray):
         if (north != -1 and east != -1 and south != -1 and west != -1 and north_east != -1
                 and north_west != -1 and south_east != -1 and south_west != -1):
             break
-    # if target is not None:
-    #     return [north, east, south, west, north_east, north_west, south_east, south_west,
-    #             euclidean_distance(player_pos, target)]
-    return [east, north, west, south, south_east, north_east, south_west, north_west]
+
+def compute_score(local_df, df):
+    local_df['explored'] = len(local_df['visited'])
+    local_df['solution'] = len(local_df['path']) if local_df['path'] is not None else 0
+    local_df['path_score'] = (local_df['solution'] + 1) / local_df['explored']
+    local_df['score'] = local_df['path'].apply(
+        lambda x: sum(abs(x[i][0] - x[i + 1][0]) + abs(x[i][1] - x[i + 1][1]) for i in range(
+            len(x) - 1)) if x is not None else 0)
+    local_df['score'] = np.maximum(0, 1 - local_df['path_score'] / local_df['score'])
+    df = pd.concat([df, local_df], ignore_index=True)
+
+    return df
