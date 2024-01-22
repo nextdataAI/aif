@@ -5,13 +5,18 @@
     - [x] DFS
     - [x] Greedy
     - [X] A*
+    - [-] MiniMax
+    - [-] Alpha-Beta
+    - [-] Monte Carlo Tree Search
+    - [-] Genetic Algorithm
 - [] DL/RL approaches
-    - [] HMM
     - [] LSTM
-    - [] A* with NN heuristic
+    - [] DQN
+    - [] Q-Learning
+    - [X] A* with NN heuristic
 - [X] Evaluation Metrics
     - [X] Time
-    - [] Number of Nodes Expanded
+    - [X] Number of Nodes Expanded
     - [X] Number of Nodes in the Path
     - [X] Number of Nodes in the Solution
     - [X] Number of Nodes in the Maze
