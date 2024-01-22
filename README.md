@@ -29,4 +29,4 @@
 
 Heuristics | Manhattan | Euclidean          | NNHeuristic
 :------------ |:-------------------|:-------------------| :-------------
-Implemented | :heavy_check_mark: | :white_check_mark: | :heavy_check_mark:
+Implemented | :white_check_mark: | :white_check_mark: | :white_check_mark:
