@@ -41,8 +41,8 @@ class Brain(Algorithm):
 
 
 class Genetic(Algorithm):
-    def __init__(self, env_name):
-        super().__init__(env_name, name="Genetic")
+    def __init__(self, env_name, name="Genetic", animate=False):
+        super().__init__(env_name, name=name, animate=animate)
         self.population_size = 50
         self.population = []
         self.mutation_rate = 0.02

@@ -8,9 +8,10 @@ __all__ = ['Algorithm']
 
 
 class Algorithm:
-    def __init__(self, env_name: str, name: str = "Algorithm"):
+    def __init__(self, env_name: str, name: str = "Algorithm", animate=False):
         self.stop = None
         self.start = None
+        self.animate = animate
         self.env_name = env_name
         self.env = gym.make(env_name, observation_keys=("chars", "pixel"), #reward_manager=reward_manager,
                             max_episode_steps=1000)

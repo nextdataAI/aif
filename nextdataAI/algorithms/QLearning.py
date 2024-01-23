@@ -8,10 +8,11 @@ __all__ = ["Qlearning"]
 
 class Qlearning(Algorithm):
 
-    def __init__(self, env_name, learning_rate=0.95, discount_factor=0.95, epsilon=0.1, render=False):
+    def __init__(self, env_name, learning_rate=0.95, discount_factor=0.95, epsilon=0.1, render=False, animate=False):
         super().__init__(
             name="Qlearning",
             env_name=env_name,
+            animate=animate
         )
         self.epsilon = epsilon
         self.render = render

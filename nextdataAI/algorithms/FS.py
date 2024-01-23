@@ -5,8 +5,9 @@ __all__ = ['BFS', 'DFS']
 
 
 class FS(Algorithm):
-    def __init__(self, name: str, env_name: str = "MiniHack-MazeWalk-15x15-v0", informed: bool = True, pop_index=0):
-        super().__init__(env_name, name)
+    def __init__(self, name: str, env_name: str = "MiniHack-MazeWalk-15x15-v0", informed: bool = True,
+                 pop_index=0, animate: bool = False):
+        super().__init__(env_name, name, animate)
         self.informed = informed
         self.pop_index = pop_index  # BFS default
 
@@ -24,7 +25,8 @@ class FS(Algorithm):
             if node == target:
                 path = self.build_path(parent, target)
                 time = self.stop_timer()
-                Animator(local_state, path, visited, f'{self.name}.gif')()
+                if self.animate:
+                    Animator(local_state, path, visited, f'{self.name}.gif')()
                 return True, list(path), list(visited), time
             for neighbor in get_valid_moves(local_game_map, node):
                 if neighbor not in visited:

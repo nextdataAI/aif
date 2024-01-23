@@ -6,8 +6,8 @@ __all__ = ['QLSTM']
 
 
 class QLSTM(Algorithm):
-    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", name: str = "QLSTM"):
-        super().__init__(env_name, name)
+    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", name: str = "QLSTM", animate: bool = False):
+        super().__init__(env_name, name, animate)
         self.batch_size = 400
         self.past_states_seq_len = 200
         self.memory = PrioritizedExperienceReplay(memory_capacity=10000)

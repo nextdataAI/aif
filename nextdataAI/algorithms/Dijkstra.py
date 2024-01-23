@@ -9,8 +9,8 @@ __all__ = ['Dijkstra']
 
 
 class Dijkstra(Algorithm):
-    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", name: str = 'Dijkstra'):
-        super().__init__(env_name, name)
+    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", name: str = 'Dijkstra', animate: bool = False):
+        super().__init__(env_name, name, animate)
 
     def __call__(self, seed: int) -> Optional[Any]:
         self.start_timer()
@@ -38,7 +38,8 @@ class Dijkstra(Algorithm):
             if current == target:
                 path = self.build_path(parent, target)
                 time = self.stop_timer()
-                Animator(local_state, path, close_list, f'{self.name}.gif')()
+                if self.animate:
+                    Animator(local_state, path, close_list, f'{self.name}.gif')()
                 return True, list(path), list(close_list), time
 
             for neighbor in get_valid_moves(local_game_map, current):

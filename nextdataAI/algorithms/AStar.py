@@ -10,8 +10,8 @@ __all__ = ['AStar']
 
 class AStar(Algorithm):
     def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", h: Union[callable, str] = 'manhattan',
-                 name: str = "AStar"):
-        super().__init__(env_name, name)
+                 name: str = "AStar", animate: bool = False):
+        super().__init__(env_name, name, animate)
         self.h = get_heuristic(h) if isinstance(h, str) else h
 
     def __call__(self, seed: int):
@@ -41,7 +41,8 @@ class AStar(Algorithm):
             if current == target:
                 path = self.build_path(parent, target)
                 time = self.stop_timer()
-                Animator(local_state, path, close_list, f'{self.name}.gif')()
+                if self.animate:
+                    Animator(local_state, path, close_list, f'{self.name}.gif')()
                 return True, list(path), list(close_list), time
 
             for action, neighbor in get_valid_moves(local_game_map, current, 'both'):

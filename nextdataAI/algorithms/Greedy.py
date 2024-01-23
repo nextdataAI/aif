@@ -10,8 +10,9 @@ from ..AnimateGif import Animator
 
 
 class Greedy(Algorithm):
-    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", h: Union[callable, str, Heuristic] = 'manhattan', name: str = "Greedy"):
-        super().__init__(env_name, name)
+    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", h: Union[callable, str, Heuristic] = 'manhattan',
+                 name: str = "Greedy", animate: bool = False):
+        super().__init__(env_name, name, animate)
         self.h = get_heuristic(h) if isinstance(h, str) else h if isinstance(h, Heuristic) else h
 
     def __call__(self, seed: int):
@@ -28,7 +29,8 @@ class Greedy(Algorithm):
             if node == target:
                 path = self.build_path(parent, target)
                 time = self.stop_timer()
-                Animator(local_state, list(path), list(visited), f'{self.name}.gif')()
+                if self.animate:
+                    Animator(local_state, list(path), list(visited), f'{self.name}.gif')()
                 return True, path, list(visited), time
             for neighbor in get_valid_moves(local_game_map, node):
                 if neighbor not in visited:
