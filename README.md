@@ -6,9 +6,10 @@
     - [x] DFS
     - [x] Greedy
     - [X] A*
-    - &#9744; MiniMax
-    - &#9744; Alpha-Beta
-    - &#9744; Monte Carlo Tree Search
+      - [X] Manhattan Heuristic
+      - [X] Euclidean Heuristic
+      - :white_check_mark: Overkill Heuristic that destroys both Manhattan and Euclidean
+    - [X] Dijkstra
     - &#9744; Genetic Algorithm
 - [X] DL/RL approaches
     - [X] Q-Learning

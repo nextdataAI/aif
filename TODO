@@ -1,9 +1,9 @@
 - [X] Generate some Mazes
 - [] Test
 - [X] Implement course solutions
-    - [x] BFS TO FIX
-    - [x] DFS TO FIX
-    - [x] Greedy TO FIX
+    - [x] BFS
+    - [x] DFS
+    - [x] Greedy
     - [X] A* Works
     - [X] Dijkstra Works
     - [X] Genetic Algorithm
