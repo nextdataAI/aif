@@ -1,7 +1,6 @@
 from typing import Union
 
 from nextdataAI.HeuristicsUtils import get_heuristic
-from nextdataAI.heuristics import Heuristic
 from .Algorithm import Algorithm
 from ..utils import get_valid_moves
 
@@ -10,10 +9,10 @@ from ..AnimateGif import Animator
 
 
 class Greedy(Algorithm):
-    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", h: Union[callable, str, Heuristic] = 'manhattan',
+    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", h: Union[callable, str] = 'manhattan',
                  name: str = "Greedy", animate: bool = False):
         super().__init__(env_name, name, animate)
-        self.h = get_heuristic(h) if isinstance(h, str) else h if isinstance(h, Heuristic) else h
+        self.h = get_heuristic(h) if isinstance(h, str) else h
 
     def __call__(self, seed: int):
         self.start_timer()
