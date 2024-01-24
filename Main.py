@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Callable
 from nextdataAI import BFS, DFS, Greedy, AStar, Dijkstra
 
+from typing import Callable
 import numpy as np
 import pandas as pd
 from tqdm import tqdm

@@ -1,6 +1,5 @@
 from .AStar import AStar
 from .Algorithm import Algorithm
-from .AlphaBeta import AlphaBeta
 from .Dijkstra import Dijkstra
 from .FS import DFS, BFS
 from .Genetic import Genetic

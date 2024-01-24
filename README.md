@@ -8,7 +8,7 @@
     - [X] A*
       - [X] Manhattan Heuristic
       - [X] Euclidean Heuristic
-      - :white_check_mark: Overkill Heuristic that destroys both Manhattan and Euclidean
+      - [X] Overkill Heuristic that destroys both Manhattan and Euclidean
     - [X] Dijkstra
     - &#9744; Genetic Algorithm
 - [X] DL/RL approaches
