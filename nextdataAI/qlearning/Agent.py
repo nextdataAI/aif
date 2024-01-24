@@ -1,5 +1,6 @@
 import math
 import random
+import string
 from abc import abstractmethod
 
 import matplotlib.pyplot as plt
@@ -35,14 +36,19 @@ def init_lstm(m):
 
 
 def init_kaiming_normal(m):
-    nn.init.kaiming_normal_(m.weight, nonlinearity='leaky_relu')
+    nn.init.kaiming_normal_(m.weight, nonlinearity='linear')
+    m.bias.data.fill_(0)
+
+
+def init_kaiming_uniform(m):
+    nn.init.kaiming_uniform(m.weight, nonlinearity='linear')
     m.bias.data.fill_(0)
 
 
 class Agent(nn.Module):
 
     @abstractmethod
-    def __init__(self, memory: ExperienceReplay, state_dim: int, action_dim: int,
+    def __init__(self, memory: ExperienceReplay, state_dim: int, action_dim: int, epsilon_decay: int,
                  batch_size: int = 1, gamma: float = 0.99, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.state_dim = state_dim
@@ -54,7 +60,7 @@ class Agent(nn.Module):
         self.epsilon = 1.0
         self.epsilon_start = 1.0
         self.epsilon_end = 0.01
-        self.epsilon_decay = 1000
+        self.epsilon_decay = epsilon_decay
 
         self.frame_idx = 0
         self.gamma = gamma
@@ -79,9 +85,9 @@ class Agent(nn.Module):
 
 
 class NNAgent(Agent):
-    def __init__(self, memory: ExperienceReplay, state_dim: int, action_dim: int,
-                 batch_size: int = 1, gamma: float = 0.99, agent: Agent = None):
-        super().__init__(memory, state_dim, action_dim, batch_size=batch_size, gamma=gamma)
+    def __init__(self, memory: ExperienceReplay, state_dim: int, action_dim: int, epsilon_decay: int,
+                 batch_size: int = 1, learning_rate: float = 1e-3, gamma: float = 0.99, agent: Agent = None):
+        super().__init__(memory, state_dim, action_dim, epsilon_decay, batch_size=batch_size, gamma=gamma)
 
         if agent is None:
             self.fc1 = nn.Linear(self.state_dim, 500).to(self.device)
@@ -116,7 +122,7 @@ class NNAgent(Agent):
 
             self.fc_final = nn.Linear(64, self.action_dim).to(self.device)
 
-            self.optimizer = optim.Adam(self.parameters(), lr=1e-4, amsgrad=True)
+            self.optimizer = optim.Adam(self.parameters(), lr=learning_rate, amsgrad=True)
         else:
             self.fc1 = agent.fc1
             self.bn1 = agent.bn1
@@ -150,7 +156,7 @@ class NNAgent(Agent):
 
     def update_epsilon(self):
         self.epsilon = (self.epsilon_end + (self.epsilon_start - self.epsilon_end)
-                        * math.exp(-1. * self.frame_idx * 7 / self.epsilon_decay))
+                        * math.exp(-1. * self.frame_idx / self.epsilon_decay))
 
     def forward(self, x):
         """
@@ -273,13 +279,19 @@ class NNAgent(Agent):
 
 
 class LSTMAgent(Agent):
-    def __init__(self, memory: ExperienceReplay,
-                 state_dim: int, action_dim: int, hidden_dim: int = 128, num_layers: int = 1,
-                 batch_size: int = 1, gamma: float = 0.99, agent: Agent = None):
+    def __init__(self, memory: ExperienceReplay, state_dim: int, action_dim: int, epsilon_decay: int, env_name: string,
+                 learning_rate: float = 1e-3, batch_size: int = 1, gamma: float = 0.99, agent: Agent = None):
 
-        super().__init__(memory, state_dim, action_dim, batch_size=batch_size, gamma=gamma)
-        self.hidden_dim = hidden_dim
-        self.num_layers = num_layers
+        super().__init__(memory, state_dim, action_dim, epsilon_decay, batch_size=batch_size, gamma=gamma)
+        if '45x19' in env_name:
+            self.hidden_dim = 128
+            self.num_layers = 1
+        if '15x15' in env_name:
+            self.hidden_dim = 64
+            self.num_layers = 1
+        if '9x9' in env_name:
+            self.hidden_dim = 16
+            self.num_layers = 1
 
         if agent is None:
             self.lstm = nn.LSTM(input_size=self.state_dim,
@@ -287,52 +299,53 @@ class LSTMAgent(Agent):
                                 num_layers=self.num_layers,
                                 batch_first=True).to(self.device)
             self.lstm.apply(init_lstm)
-            self.dropout_lstm = nn.Dropout(0.3).to(self.device)
+            # self.dropout_lstm = nn.Dropout(0.2).to(self.device)
 
-            self.fc1 = nn.Linear(self.hidden_dim, 512).to(self.device)
-            self.fc1.apply(init_kaiming_normal)
-            self.bn1 = nn.BatchNorm1d(512).to(self.device)
-            self.activation1 = nn.PReLU().to(self.device)
+            self.fc1 = nn.Linear(self.hidden_dim, 32).to(self.device)
+            self.fc1.apply(init_kaiming_uniform)
+            # self.bn1 = nn.BatchNorm1d(32).to(self.device)
+            self.activation1 = nn.SELU().to(self.device)
 
-            self.fc2 = nn.Linear(512, 512).to(self.device)
-            self.fc2.apply(init_kaiming_normal)
-            self.bn2 = nn.BatchNorm1d(512).to(self.device)
-            self.activation2 = nn.PReLU().to(self.device)
+            self.fc2 = nn.Linear(32, 32).to(self.device)
+            self.fc2.apply(init_kaiming_uniform)
+            # self.bn2 = nn.BatchNorm1d(32).to(self.device)
+            self.activation2 = nn.SELU().to(self.device)
 
-            self.fc3 = nn.Linear(512, 512).to(self.device)
-            self.fc3.apply(init_kaiming_normal)
-            self.bn3 = nn.BatchNorm1d(512).to(self.device)
-            self.activation3 = nn.PReLU().to(self.device)
+            self.fc3 = nn.Linear(32, 32).to(self.device)
+            self.fc3.apply(init_kaiming_uniform)
+            # self.bn3 = nn.BatchNorm1d(8).to(self.device)
+            self.activation3 = nn.SELU().to(self.device)
 
-            self.fc_final = nn.Linear(512, self.action_dim).to(self.device)
+            self.fc_final = nn.Linear(32, self.action_dim).to(self.device)
 
-            self.optimizer = optim.Adam(self.parameters(), lr=1e-3)
+            self.optimizer = optim.Adam(self.parameters(), lr=learning_rate, amsgrad=True)
 
         else:
             self.lstm = agent.lstm
-            self.dropout_lstm = agent.dropout_lstm
+            # self.dropout_lstm = agent.dropout_lstm
 
             self.fc1 = agent.fc1
-            self.bn1 = agent.bn1
+            # self.bn1 = agent.bn1
             self.activation1 = agent.activation1
 
             self.fc2 = agent.fc2
-            self.bn2 = agent.bn2
+            # self.bn2 = agent.bn2
             self.activation2 = agent.activation2
 
             self.fc3 = agent.fc3
-            self.bn3 = agent.bn3
+            # self.bn3 = agent.bn3
             self.activation3 = agent.activation3
 
             self.fc_final = agent.fc_final
 
             self.optimizer = agent.optimizer
-            self.epsilon_start = max(0.5, agent.epsilon_start - 0.1)
+            self.epsilon_start = max(0.1, agent.epsilon_start - 0.3)
+            self.epsilon = self.epsilon_start
             self.loss_values = agent.loss_values
 
     def update_epsilon(self):
         self.epsilon = (self.epsilon_end + (self.epsilon_start - self.epsilon_end)
-                        * math.exp(-1. * self.frame_idx * 7 / self.epsilon_decay))
+                        * math.exp(-1. * self.frame_idx / self.epsilon_decay))
 
     def forward(self, x):
         """
@@ -349,21 +362,21 @@ class LSTMAgent(Agent):
         batch_flag = x.shape[0] != 1
 
         out, (_, _) = self.lstm(x)
-        out = self.dropout_lstm(out)
+        # out = self.dropout_lstm(out)
 
         out = self.fc1(out[:, -1, :])
-        if batch_flag:
-            out = self.bn1(out)
+        # if batch_flag:
+        #     out = self.bn1(out)
         out = self.activation1(out)
 
         out = self.fc2(out)
-        if batch_flag:
-            out = self.bn2(out)
+        # if batch_flag:
+        #     out = self.bn2(out)
         out = self.activation2(out)
 
         out = self.fc3(out)
-        if batch_flag:
-            out = self.bn3(out)
+        # if batch_flag:
+        #     out = self.bn3(out)
         out = self.activation3(out)
 
         out = self.fc_final(out)
@@ -446,11 +459,12 @@ class LSTMAgent(Agent):
 
 
 def train(agent: Agent, env: Env, single_state: np.ndarray, start: (int, int), target: (int, int),
-          batch_size: int = 1, sequence_length: int = 4):
+          batch_size: int = 1, sequence_length: int = 4, max_epoch: int = 3):
     single_state = single_state.flatten()
-    max_epoch = 3
 
     for epoch in range(max_epoch):
+        if epoch == 0:
+            agent.epsilon_start = 1.0
         if isinstance(agent, LSTMAgent):
             state = np.zeros((sequence_length,) + single_state.shape)
             state[-1] = single_state
@@ -505,5 +519,7 @@ def train(agent: Agent, env: Env, single_state: np.ndarray, start: (int, int), t
             total_reward += reward
             total_reward = round(total_reward, 2)
             print(f'\rEpoch: {epoch + 1} | Frame: {frame_idx} | Reward: {total_reward} ', end='', flush=True)
+
+        agent.epsilon_start = max(0.1, agent.epsilon_start - 0.3)
 
     return target_reached, explored_positions
