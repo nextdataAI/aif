@@ -13,8 +13,15 @@ class Algorithm:
         self.start = None
         self.animate = animate
         self.env_name = env_name
-        self.env = gym.make(env_name, observation_keys=("chars", "pixel"), #reward_manager=reward_manager,
-                            max_episode_steps=1000)
+        if '45x19' in env_name:
+            self.env = gym.make(env_name, observation_keys=("chars", "pixel"),
+                                max_episode_steps=45 * 19)
+        elif '15x15' in env_name:
+            self.env = gym.make(env_name, observation_keys=("chars", "pixel"),
+                                max_episode_steps=15 * 15)
+        elif '9x9' in env_name:
+            self.env = gym.make(env_name, observation_keys=("chars", "pixel"),
+                                max_episode_steps=9 * 9)
         self.name = name
 
     def initialize_env(self, seed: int, informed: bool = True):
