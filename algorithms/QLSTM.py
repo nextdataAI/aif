@@ -25,5 +25,5 @@ class QLSTM(Algorithm):
         self.agent.plot_learning_curve()
         print(target_reached)
         if not target_reached:
-            return None, explored_positions, self.stop_timer()
-        return explored_positions, explored_positions, self.stop_timer()
+            return False, None, explored_positions, self.stop_timer()
+        return True, explored_positions, explored_positions, self.stop_timer()

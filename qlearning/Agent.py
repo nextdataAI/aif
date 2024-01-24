@@ -82,19 +82,39 @@ class NNAgent(Agent):
         super().__init__(memory, state_dim, action_dim, batch_size=batch_size, gamma=gamma)
 
         if agent is None:
-            self.fc1 = nn.Linear(self.state_dim, 128).to(self.device)
+            self.fc1 = nn.Linear(self.state_dim, 500).to(self.device)
             self.fc1.apply(init_kaiming_normal)
-            self.bn1 = nn.BatchNorm1d(128).to(self.device)
-            self.activation1 = nn.ELU().to(self.device)
+            self.bn1 = nn.BatchNorm1d(500).to(self.device)
+            self.activation1 = nn.SELU().to(self.device)
 
-            self.fc2 = nn.Linear(128, 128).to(self.device)
+            self.fc2 = nn.Linear(500, 300).to(self.device)
             self.fc2.apply(init_kaiming_normal)
-            self.bn2 = nn.BatchNorm1d(128).to(self.device)
-            self.activation2 = nn.ELU().to(self.device)
+            self.bn2 = nn.BatchNorm1d(300).to(self.device)
+            self.activation2 = nn.SELU().to(self.device)
 
-            self.fc_final = nn.Linear(128, self.action_dim).to(self.device)
+            self.fc3 = nn.Linear(300, 300).to(self.device)
+            self.fc3.apply(init_kaiming_normal)
+            self.bn3 = nn.BatchNorm1d(300).to(self.device)
+            self.activation3 = nn.SELU().to(self.device)
 
-            self.optimizer = optim.Adam(self.parameters(), lr=1e-3)
+            self.fc4 = nn.Linear(300, 200).to(self.device)
+            self.fc4.apply(init_kaiming_normal)
+            self.bn4 = nn.BatchNorm1d(200).to(self.device)
+            self.activation4 = nn.SELU().to(self.device)
+
+            self.fc5 = nn.Linear(200, 100).to(self.device)
+            self.fc5.apply(init_kaiming_normal)
+            self.bn5 = nn.BatchNorm1d(100).to(self.device)
+            self.activation5 = nn.SELU().to(self.device)
+
+            self.fc6 = nn.Linear(100, 64).to(self.device)
+            self.fc6.apply(init_kaiming_normal)
+            self.bn6 = nn.BatchNorm1d(64).to(self.device)
+            self.activation6 = nn.SELU().to(self.device)
+
+            self.fc_final = nn.Linear(64, self.action_dim).to(self.device)
+
+            self.optimizer = optim.Adam(self.parameters(), lr=1e-4, amsgrad=True)
         else:
             self.fc1 = agent.fc1
             self.bn1 = agent.bn1
@@ -103,6 +123,22 @@ class NNAgent(Agent):
             self.fc2 = agent.fc2
             self.bn2 = agent.bn2
             self.activation2 = agent.activation2
+
+            self.fc3 = agent.fc3
+            self.bn3 = agent.bn3
+            self.activation3 = agent.activation3
+
+            self.fc4 = agent.fc4
+            self.bn4 = agent.bn4
+            self.activation4 = agent.activation4
+
+            self.fc5 = agent.fc5
+            self.bn5 = agent.bn5
+            self.activation5 = agent.activation5
+
+            self.fc6 = agent.fc6
+            self.bn6 = agent.bn6
+            self.activation6 = agent.activation6
 
             self.fc_final = agent.fc_final
 
@@ -126,17 +162,35 @@ class NNAgent(Agent):
         batch_flag = x.shape[0] != 1
 
         out = self.fc1(x)
-
-        if batch_flag:
-            out = self.bn1(out)
-
+        # if batch_flag:
+        #     out = self.bn1(out)
         out = self.activation1(out)
+
         out = self.fc2(out)
-
-        if batch_flag:
-            out = self.bn2(out)
-
+        # if batch_flag:
+        #     out = self.bn2(out)
         out = self.activation2(out)
+
+        out = self.fc3(out)
+        # if batch_flag:
+        #     out = self.bn3(out)
+        out = self.activation3(out)
+
+        out = self.fc4(out)
+        # if batch_flag:
+        #     out = self.bn4(out)
+        out = self.activation4(out)
+
+        out = self.fc5(out)
+        # if batch_flag:
+        #     out = self.bn5(out)
+        out = self.activation5(out)
+
+        out = self.fc6(out)
+        # if batch_flag:
+        #     out = self.bn6(out)
+        out = self.activation6(out)
+
         out = self.fc_final(out)
 
         return out
@@ -392,57 +446,62 @@ class LSTMAgent(Agent):
 def train(agent: Agent, env: Env, single_state: np.ndarray, start: (int, int), target: (int, int),
           batch_size: int = 1, sequence_length: int = 4):
     single_state = single_state.flatten()
+    max_epoch = 3
 
-    if isinstance(agent, LSTMAgent):
-        state = np.zeros((sequence_length,) + single_state.shape)
-        state[-1] = single_state
-    else:
-        state = single_state
-
-    done = False
-    target_reached = False
-    total_reward = 0
-    frame_idx = 0
-    explored_positions = [start]
-
-    # Run until an episode is done
-    while not done:
-        agent.update_epsilon()
-
-        # Ask the agent to decide on an action based on the state sequence
-        action = agent.act(state)
-
-        # Take the action and get the new state, reward and done flag
-        next_state, reward, done, _ = env.step(action)
-        agent_position = get_player_location(next_state['chars'])
-        if agent_position == (None, None):
-            agent_position = target
-        if agent_position not in explored_positions:
-            explored_positions.append(agent_position)
-        next_state = next_state['chars'].flatten()
-
-        if reward == 1:
-            target_reached = True
-
-        # env.render()
-
-        # Store this transition in the agent's memory for future training
-        agent.remember(state, action, reward, next_state, done)
-
+    for epoch in range(max_epoch):
         if isinstance(agent, LSTMAgent):
-            # Shift the states in the sequence and append the new state
-            state[:-1] = state[1:]
-            state[-1] = next_state
+            state = np.zeros((sequence_length,) + single_state.shape)
+            state[-1] = single_state
         else:
-            state = next_state
+            state = single_state
 
-        # Perform experience replay and update the weights of the DQN
-        agent.experience_replay(batch_size)
+        done = False
+        target_reached = False
+        total_reward = 0
+        frame_idx = 0
+        explored_positions = [start]
 
-        agent.frame_idx += 1
-        frame_idx += 1
-        total_reward += reward
-        total_reward = round(total_reward, 2)
-        print(f'\rFrame: {frame_idx} | Reward: {total_reward} ', end='', flush=True)
+        # Resetting agent's position
+        env.reset()
+
+        # Run until an episode is done
+        while not done:
+            agent.update_epsilon()
+
+            # Ask the agent to decide on an action based on the state sequence
+            action = agent.act(state)
+
+            # Take the action and get the new state, reward and done flag
+            next_state, reward, done, _ = env.step(action)
+            agent_position = get_player_location(next_state['chars'])
+            if agent_position == (None, None):
+                agent_position = target
+            if agent_position not in explored_positions:
+                explored_positions.append(agent_position)
+            next_state = next_state['chars'].flatten()
+
+            if reward == 1:
+                target_reached = True
+
+            # env.render()
+
+            # Store this transition in the agent's memory for future training
+            agent.remember(state, action, reward, next_state, done)
+
+            if isinstance(agent, LSTMAgent):
+                # Shift the states in the sequence and append the new state
+                state[:-1] = state[1:]
+                state[-1] = next_state
+            else:
+                state = next_state
+
+            # Perform experience replay and update the weights of the DQN
+            agent.experience_replay(batch_size)
+
+            agent.frame_idx += 1
+            frame_idx += 1
+            total_reward += reward
+            total_reward = round(total_reward, 2)
+            print(f'\rEpoch: {epoch + 1} | Frame: {frame_idx} | Reward: {total_reward} ', end='', flush=True)
 
     return target_reached, explored_positions
