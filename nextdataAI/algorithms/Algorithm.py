@@ -8,29 +8,43 @@ __all__ = ['Algorithm']
 
 
 class Algorithm:
-    def __init__(self, env_name: str, name: str = "Algorithm", animate=False):
+    def __init__(self, env_name: str, name: str = "Algorithm", animate=False, override_maze=None):
         self.stop = None
         self.start = None
         self.animate = animate
         self.env_name = env_name
-        if '45x19' in env_name:
-            self.env = gym.make(env_name, observation_keys=("chars", "pixel"),
-                                max_episode_steps=45 * 19)
-        elif '15x15' in env_name:
-            self.env = gym.make(env_name, observation_keys=("chars", "pixel"),
-                                max_episode_steps=15 * 15)
-        elif '9x9' in env_name:
-            self.env = gym.make(env_name, observation_keys=("chars", "pixel"),
-                                max_episode_steps=9 * 9)
+        self.size = None
+        self.ovveride_maze = override_maze
+        self.set_size()
+        self.env = gym.make(env_name, observation_keys=("chars", "pixel"), 
+                            max_episode_steps=self.get_size())
         self.name = name
+  
+    def get_size(self):
+        if self.size == 'large':
+            return 45*19
+        elif self.size == 'medium':
+            return 15*15
+        elif self.size == 'small':
+            return 9*9
+        return 1000
+  
+    def set_size(self):
+        if self.env_name == 'MiniHack-MazeWalk-Mapped-45x19-v0':
+            self.size = 'large'
+        elif self.env_name == 'MiniHack-MazeWalk-Mapped-15x15-v0':
+            self.size = 'medium'
+        elif self.env_name == 'MiniHack-MazeWalk-Mapped-9x9-v0':
+            self.size = 'small'
 
     def initialize_env(self, seed: int, informed: bool = True):
         self.env.seed(seed)
         local_state = self.env.reset()
         local_game_map = local_state.get('chars')
+        if self.ovveride_maze is not None:
+            local_game_map = self.ovveride_maze
+            self.env_name = 'Custom-MazeWalk'
         start = get_player_location(local_game_map)
-        # plt.imshow(local_state.get('pixel'))
-        # plt.show()
         target = get_target_location(local_game_map) if informed else None
         return self.env, local_state, local_game_map, start, target
 

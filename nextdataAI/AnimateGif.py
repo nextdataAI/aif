@@ -11,19 +11,23 @@ __all__ = ["Animator"]
 
 
 class Animator:
-    def __init__(self, game_map, path, visited, file_path='animation.gif'):
+    def __init__(self, size, game_map, path, visited, file_path=None, fps=30, disable_line=True):
         self.game_map = game_map.get('pixel').copy()
         self.chars = game_map.get('chars').copy()
         self.start = get_player_location(self.chars)
+        self.fps = fps
         self.target = get_target_location(self.chars)
         self.visited = visited
         self.path = path
+        self.disable_line = disable_line
         if self.target in path:
             self.path.remove(self.target)
         self.visited_actions = self.coordinates_to_action(visited)
         self.path_actions = self.coordinates_to_action(path)
         self.done = []
-        self.file_path = file_path
+        self.size = size
+        if file_path is not None:
+            self.file_path = 'TestsAnimations/' + file_path
         self.player, self.floor, self.floor_red, self.floor_yellow, self.flood_blue, self.target_img = get_player_floor_target_png(
             True)
 
@@ -77,7 +81,7 @@ class Animator:
         animation = images
         local_game_map = game_map.copy()
         counter = int(list(images[-1].keys())[-1]) + 1
-        for entry in tqdm(visited_actions):
+        for entry in tqdm(visited_actions, disable=self.disable_line):
             state = tuple(entry.keys())[0]
             action = entry[state]
             # get the current state
@@ -89,7 +93,7 @@ class Animator:
             counter += 1
         # save the animation
         out = [list(elem.values())[-1] for elem in animation]
-        imageio.mimsave(f'{self.file_path}', out, fps=30)
+        imageio.mimsave(f'{self.file_path}', out, fps=self.fps)
 
     def __move_player__(self, game_map, action, counter=0):
         """
@@ -118,12 +122,9 @@ class Animator:
                         tmp_image[i:i + 16, j - 16:j] = player_img
                     elif action == 1:
                         tmp_image[i:i + 16, j + 16:j + 32] = player_img
-                    Image.fromarray(tmp_image).save(f'tmp/animation_{counter}.png')
+                    tmp_image2 = self.crop(tmp_image)
+                    Image.fromarray(tmp_image2).save(f'tmp/animation_{counter}.png')
                     return tmp_image
-        # padding = np.zeros((1264, 1264, 3), dtype=np.uint8)
-        # padding[:, :] = np.array([0, 0, 0])
-        # padding[464:800, 0:1264] = game_map
-        # return np.array(padding, dtype=np.float16)
 
     def __print_visited(self, game_map, visited):
         """
@@ -134,15 +135,27 @@ class Animator:
         """
         tmp_image = game_map.copy()
         counter = 0
-        # visited = sorted(visited)
         out = []
         for state in visited:
             floor_img = self.floor_red.copy() if state in self.done else self.floor_yellow.copy()
             tmp1 = tmp_image[state[0] * 16:state[0] * 16 + 16, state[1] * 16:state[1] * 16 + 16]
             if not np.array_equal(tmp1, self.player) and not np.array_equal(tmp1, self.target_img):
                 tmp_image[state[0] * 16:state[0] * 16 + 16, state[1] * 16:state[1] * 16 + 16] = floor_img[:, :, :3]
-                Image.fromarray(tmp_image).save(f'tmp/animation_{counter}.png')
+                tmp_image2 = self.crop(tmp_image)
+                Image.fromarray(tmp_image2).save(f'tmp/animation_{counter}.png')
                 out.append({counter: imageio.imread(f'tmp/animation_{counter}.png')})
                 counter += 1
-        # imageio.mimsave(f'visited{self.file_path}', out, fps=10)
         return tmp_image, out
+
+    def crop(self, image):
+        """
+        Crop the image.
+        Args:
+            image: The image to crop.
+        """
+        if self.size == 'small':
+            return image[112:224, 576:688]
+        elif self.size == 'medium':
+            return image[80:288, 512:720]
+        elif self.size == 'large':
+            return image[48:336, 276:990]
