@@ -11,7 +11,7 @@ __all__ = ["Animator"]
 
 
 class Animator:
-    def __init__(self, size, game_map, path, visited, file_path=None, fps=30):
+    def __init__(self, size, game_map, path, visited, file_path=None, fps=30, disable_line=True):
         self.game_map = game_map.get('pixel').copy()
         self.chars = game_map.get('chars').copy()
         self.start = get_player_location(self.chars)
@@ -19,6 +19,7 @@ class Animator:
         self.target = get_target_location(self.chars)
         self.visited = visited
         self.path = path
+        self.disable_line = disable_line
         if self.target in path:
             self.path.remove(self.target)
         self.visited_actions = self.coordinates_to_action(visited)
@@ -80,7 +81,7 @@ class Animator:
         animation = images
         local_game_map = game_map.copy()
         counter = int(list(images[-1].keys())[-1]) + 1
-        for entry in tqdm(visited_actions):
+        for entry in tqdm(visited_actions, disable=self.disable_line):
             state = tuple(entry.keys())[0]
             action = entry[state]
             # get the current state
