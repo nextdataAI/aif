@@ -19,6 +19,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.ba
 
 __all__ = ['Agent', 'LSTMAgent', 'train', 'NNAgent']
 
+
 def init_lstm(m):
     for name, param in m.named_parameters():
         if 'weight_ih' in name:
@@ -41,7 +42,7 @@ def init_kaiming_normal(m):
 
 
 def init_kaiming_uniform(m):
-    nn.init.kaiming_uniform(m.weight, nonlinearity='linear')
+    nn.init.kaiming_uniform_(m.weight, nonlinearity='linear')
     m.bias.data.fill_(0)
 
 
@@ -90,68 +91,42 @@ class NNAgent(Agent):
         super().__init__(memory, state_dim, action_dim, epsilon_decay, batch_size=batch_size, gamma=gamma)
 
         if agent is None:
-            self.fc1 = nn.Linear(self.state_dim, 500).to(self.device)
+            self.fc1 = nn.Linear(self.state_dim, 128).to(self.device)
             self.fc1.apply(init_kaiming_normal)
-            self.bn1 = nn.BatchNorm1d(500).to(self.device)
             self.activation1 = nn.SELU().to(self.device)
 
-            self.fc2 = nn.Linear(500, 300).to(self.device)
+            self.fc2 = nn.Linear(128, 64).to(self.device)
             self.fc2.apply(init_kaiming_normal)
-            self.bn2 = nn.BatchNorm1d(300).to(self.device)
             self.activation2 = nn.SELU().to(self.device)
 
-            self.fc3 = nn.Linear(300, 300).to(self.device)
+            self.fc3 = nn.Linear(64, 64).to(self.device)
             self.fc3.apply(init_kaiming_normal)
-            self.bn3 = nn.BatchNorm1d(300).to(self.device)
             self.activation3 = nn.SELU().to(self.device)
 
-            self.fc4 = nn.Linear(300, 200).to(self.device)
+            self.fc4 = nn.Linear(64, 64).to(self.device)
             self.fc4.apply(init_kaiming_normal)
-            self.bn4 = nn.BatchNorm1d(200).to(self.device)
             self.activation4 = nn.SELU().to(self.device)
-
-            self.fc5 = nn.Linear(200, 100).to(self.device)
-            self.fc5.apply(init_kaiming_normal)
-            self.bn5 = nn.BatchNorm1d(100).to(self.device)
-            self.activation5 = nn.SELU().to(self.device)
-
-            self.fc6 = nn.Linear(100, 64).to(self.device)
-            self.fc6.apply(init_kaiming_normal)
-            self.bn6 = nn.BatchNorm1d(64).to(self.device)
-            self.activation6 = nn.SELU().to(self.device)
 
             self.fc_final = nn.Linear(64, self.action_dim).to(self.device)
 
             self.optimizer = optim.Adam(self.parameters(), lr=learning_rate, amsgrad=True)
         else:
             self.fc1 = agent.fc1
-            self.bn1 = agent.bn1
             self.activation1 = agent.activation1
 
             self.fc2 = agent.fc2
-            self.bn2 = agent.bn2
             self.activation2 = agent.activation2
 
             self.fc3 = agent.fc3
-            self.bn3 = agent.bn3
             self.activation3 = agent.activation3
 
             self.fc4 = agent.fc4
-            self.bn4 = agent.bn4
             self.activation4 = agent.activation4
-
-            self.fc5 = agent.fc5
-            self.bn5 = agent.bn5
-            self.activation5 = agent.activation5
-
-            self.fc6 = agent.fc6
-            self.bn6 = agent.bn6
-            self.activation6 = agent.activation6
 
             self.fc_final = agent.fc_final
 
             self.optimizer = agent.optimizer
-            self.epsilon_start = max(0.5, agent.epsilon_start - 0.1)
+            self.epsilon_start = 1.0
             self.loss_values = agent.loss_values
 
     def update_epsilon(self):
@@ -167,37 +142,18 @@ class NNAgent(Agent):
         """
         if len(x.shape) == 1:
             x = x.unsqueeze(0)
-        batch_flag = x.shape[0] != 1
 
         out = self.fc1(x)
-        # if batch_flag:
-        #     out = self.bn1(out)
         out = self.activation1(out)
 
         out = self.fc2(out)
-        # if batch_flag:
-        #     out = self.bn2(out)
         out = self.activation2(out)
 
         out = self.fc3(out)
-        # if batch_flag:
-        #     out = self.bn3(out)
         out = self.activation3(out)
 
         out = self.fc4(out)
-        # if batch_flag:
-        #     out = self.bn4(out)
         out = self.activation4(out)
-
-        out = self.fc5(out)
-        # if batch_flag:
-        #     out = self.bn5(out)
-        out = self.activation5(out)
-
-        out = self.fc6(out)
-        # if batch_flag:
-        #     out = self.bn6(out)
-        out = self.activation6(out)
 
         out = self.fc_final(out)
 
@@ -284,10 +240,10 @@ class LSTMAgent(Agent):
 
         super().__init__(memory, state_dim, action_dim, epsilon_decay, batch_size=batch_size, gamma=gamma)
         if '45x19' in env_name:
-            self.hidden_dim = 128
+            self.hidden_dim = 400
             self.num_layers = 1
         if '15x15' in env_name:
-            self.hidden_dim = 64
+            self.hidden_dim = 200
             self.num_layers = 1
         if '9x9' in env_name:
             self.hidden_dim = 16
@@ -299,21 +255,17 @@ class LSTMAgent(Agent):
                                 num_layers=self.num_layers,
                                 batch_first=True).to(self.device)
             self.lstm.apply(init_lstm)
-            # self.dropout_lstm = nn.Dropout(0.2).to(self.device)
 
             self.fc1 = nn.Linear(self.hidden_dim, 32).to(self.device)
             self.fc1.apply(init_kaiming_uniform)
-            # self.bn1 = nn.BatchNorm1d(32).to(self.device)
             self.activation1 = nn.SELU().to(self.device)
 
             self.fc2 = nn.Linear(32, 32).to(self.device)
             self.fc2.apply(init_kaiming_uniform)
-            # self.bn2 = nn.BatchNorm1d(32).to(self.device)
             self.activation2 = nn.SELU().to(self.device)
 
             self.fc3 = nn.Linear(32, 32).to(self.device)
             self.fc3.apply(init_kaiming_uniform)
-            # self.bn3 = nn.BatchNorm1d(8).to(self.device)
             self.activation3 = nn.SELU().to(self.device)
 
             self.fc_final = nn.Linear(32, self.action_dim).to(self.device)
@@ -322,25 +274,20 @@ class LSTMAgent(Agent):
 
         else:
             self.lstm = agent.lstm
-            # self.dropout_lstm = agent.dropout_lstm
 
             self.fc1 = agent.fc1
-            # self.bn1 = agent.bn1
             self.activation1 = agent.activation1
 
             self.fc2 = agent.fc2
-            # self.bn2 = agent.bn2
             self.activation2 = agent.activation2
 
             self.fc3 = agent.fc3
-            # self.bn3 = agent.bn3
             self.activation3 = agent.activation3
 
             self.fc_final = agent.fc_final
 
             self.optimizer = agent.optimizer
-            self.epsilon_start = max(0.1, agent.epsilon_start - 0.3)
-            self.epsilon = self.epsilon_start
+            self.epsilon_start = 1.0
             self.loss_values = agent.loss_values
 
     def update_epsilon(self):
@@ -359,24 +306,16 @@ class LSTMAgent(Agent):
             x = x.unsqueeze(1)
         elif len(x.shape) == 2:
             x = x.unsqueeze(0)
-        batch_flag = x.shape[0] != 1
 
         out, (_, _) = self.lstm(x)
-        # out = self.dropout_lstm(out)
 
         out = self.fc1(out[:, -1, :])
-        # if batch_flag:
-        #     out = self.bn1(out)
         out = self.activation1(out)
 
         out = self.fc2(out)
-        # if batch_flag:
-        #     out = self.bn2(out)
         out = self.activation2(out)
 
         out = self.fc3(out)
-        # if batch_flag:
-        #     out = self.bn3(out)
         out = self.activation3(out)
 
         out = self.fc_final(out)
@@ -520,6 +459,8 @@ def train(agent: Agent, env: Env, single_state: np.ndarray, start: (int, int), t
             total_reward = round(total_reward, 2)
             print(f'\rEpoch: {epoch + 1} | Frame: {frame_idx} | Reward: {total_reward} ', end='', flush=True)
 
+        if target_reached:
+            break
         agent.epsilon_start = max(0.1, agent.epsilon_start - 0.3)
 
     return target_reached, explored_positions
