@@ -5,5 +5,5 @@ from .FS import DFS, BFS
 from .Genetic import Genetic
 from .Greedy import Greedy
 from .QLSTM import QLSTM
-from .QLearning import Qlearning
+from .QTable import QTable
 from .QNN import QNN

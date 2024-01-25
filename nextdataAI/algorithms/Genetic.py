@@ -1,14 +1,14 @@
+import copy
+import os
+import pickle
+
 from tqdm import tqdm
 
 from .Algorithm import Algorithm
+from ..AnimateGif import Animator
 from ..utils import get_player_location
 
-try:
-    import mlx.core as np
-    print("Using MLX", np.default_device())
-except ImportError:
-    print("Using numpy")
-    import numpy as np
+import numpy as np
 
 
 class Brain(Algorithm):
@@ -71,10 +71,7 @@ class Genetic(Algorithm):
                 self.selection()
                 self.crossover()
                 self.mutation()
-                # Remove one random brain from the population
-                rand_value = np.random.randint(0, len(self.population))
-                rand_value = rand_value if isinstance(rand_value, int) else rand_value.item()
-                self.population.pop(rand_value)
+                self.population.pop(0)
                 self.population.append(self.best)
                 if self.best_fitness == 1.0:
                     break
@@ -116,24 +113,30 @@ class Genetic(Algorithm):
     def __call__(self, seed):
         self.start_timer()
         local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
+        game_map_animator = copy.deepcopy(local_state)
         self.input_size = local_game_map.shape[0] * local_game_map.shape[1]
         self.output_size = 4
         self.seed = seed
+        if not self.best:
+            if os.path.exists(f'{os.path.dirname(__file__)}/models/best_brain.npy'):
+                with open(f'{os.path.dirname(__file__)}/models/best_brain.npy', 'rb') as f:
+                    self.best = Brain(self.env_name, self.input_size, self.output_size)
+                    self.best.weights, self.best.bias, self.best_fitness = pickle.load(f)
         self.run() if not self.best or self.best.fitness_score < 1.0 else None
-        # with open('best_brain.npy', 'wb') as f:
-        #     self.best.env = None
-        #     pickle.dump(self.best, f)
+        with open(f'{os.path.dirname(__file__)}/models/best_brain.npy', 'wb') as f:
+            out = (self.best.weights, self.best.bias, self.best_fitness)
+            pickle.dump(out, f)
         done = False
-        path = []
+        path = [start]
         while not done:
             # Get the best move
             agent_pos = get_player_location(local_state['chars'])
             best_move = self.get_action(local_state['chars'])
             # Make the move
             local_state, reward, done, info = local_env.step(best_move)
-            # Render the environment
-            # local_env.render()
             path.append(agent_pos)
 
             if done:
+                if self.animate and reward == 1.0:
+                    Animator(size=self.size, game_map=game_map_animator, path=path, visited=path, file_path=f'{self.name}.gif')()
                 return True if reward == 1.0 else False, path, path, self.stop_timer()

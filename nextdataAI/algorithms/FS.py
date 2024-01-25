@@ -26,7 +26,7 @@ class FS(Algorithm):
                 path = self.build_path(parent, target)
                 time = self.stop_timer()
                 if self.animate:
-                    Animator(local_state, path, visited, f'{self.name}.gif')()
+                    Animator(size=self.size, game_map=local_state, path=path, visited=visited, file_path=f'{self.name}.gif')()
                 return True, list(path), list(visited), time
             for neighbor in get_valid_moves(local_game_map, node):
                 if neighbor not in visited:
@@ -37,16 +37,16 @@ class FS(Algorithm):
 
 
 class BFS(FS):
-    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", informed: bool = True, name='BFS'):
-        super().__init__(env_name=env_name, informed=informed, name=name, pop_index=0)
+    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", informed: bool = True, name='BFS', animate=False):
+        super().__init__(env_name=env_name, informed=informed, name=name, pop_index=0, animate=animate)
 
     def __call__(self, seed: int):
         return super().__call__(seed)
 
 
 class DFS(FS):
-    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", informed: bool = True, name='DFS'):
-        super().__init__(env_name=env_name, informed=informed, name=name, pop_index=-1)
+    def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", informed: bool = True, name='DFS', animate=False):
+        super().__init__(env_name=env_name, informed=informed, name=name, pop_index=-1, animate=animate)
 
     def __call__(self, seed: int):
         return super().__call__(seed)
