@@ -22,11 +22,11 @@ class Algorithm:
   
     def get_size(self):
         if self.size == 'large':
-            return 45*19
+            return 45*19*2
         elif self.size == 'medium':
-            return 15*15
+            return 15*15*2
         elif self.size == 'small':
-            return 9*9
+            return 9*9*2
         return 1000
   
     def set_size(self):

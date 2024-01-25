@@ -11,22 +11,22 @@ class QLSTM(Algorithm):
         if '45x19' in env_name:
             self.batch_size = 300
             self.past_states_seq_len = 200
-            self.max_epoch = 4
-            self.memory = PrioritizedExperienceReplay(memory_capacity=(45 * 19 * self.max_epoch) * 2)
+            self.max_epoch = 10
+            self.memory = PrioritizedExperienceReplay(memory_capacity=45 * 19 * 2 * self.max_epoch)
             self.epsilon_decay = 140
             self.learning_rate = 1e-4
         if '15x15' in env_name:
-            self.batch_size = 100
-            self.past_states_seq_len = 50
-            self.max_epoch = 4
-            self.memory = PrioritizedExperienceReplay(memory_capacity=(15 * 15 * self.max_epoch) * 2)
+            self.batch_size = 300
+            self.past_states_seq_len = 100
+            self.max_epoch = 10
+            self.memory = PrioritizedExperienceReplay(memory_capacity=15 * 15 * 2 * self.max_epoch)
             self.epsilon_decay = 35
-            self.learning_rate = 1e-4
+            self.learning_rate = 1e-3
         if '9x9' in env_name:
             self.batch_size = 40
             self.past_states_seq_len = 20
             self.max_epoch = 10
-            self.memory = PrioritizedExperienceReplay(memory_capacity=(9 * 9 * self.max_epoch) * 2)
+            self.memory = PrioritizedExperienceReplay(memory_capacity=9 * 9 * 2 * self.max_epoch)
             self.epsilon_decay = 15
             self.learning_rate = 1e-5
 
