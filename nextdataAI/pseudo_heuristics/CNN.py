@@ -5,8 +5,8 @@ import tensorflow as tf
 import wandb
 from wandb.integration.keras import WandbMetricsLogger
 
-from data.dataset import ImageDataset
-from data.dataset import get_player_floor_target_png
+from ..data.dataset import ImageDataset
+from ..data.dataset import get_player_floor_target_png
 from .PseudoHeuristics import PseudoHeuristic
 
 

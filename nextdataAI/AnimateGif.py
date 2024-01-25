@@ -4,7 +4,7 @@ from .utils import get_player_location, get_target_location
 from tqdm import tqdm
 import imageio.v2 as imageio
 from PIL import Image
-from data.dataset import get_player_floor_target_png
+from .data.dataset import get_player_floor_target_png
 import os
 
 __all__ = ["Animator"]

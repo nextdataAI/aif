@@ -9,7 +9,7 @@ import tensorflow as tf
 import wandb
 from wandb.integration.keras import WandbMetricsLogger
 
-from data import AsciiDataset
+from ..data import AsciiDataset
 from .PseudoHeuristics import PseudoHeuristic
 
 sys.path.append(str(Path.cwd().parent))

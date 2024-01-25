@@ -13,6 +13,9 @@ from .pseudo_heuristics import *
 from .qlearning import *
 from .utils import *
 
+from .data import ImageDataset
+from .data import AsciiDataset
+from .data import get_player_floor_target_png
 from .AnimateGif import Animator
 
 

@@ -165,3 +165,5 @@ data/maze_ascii_dataset
 .DS_Store
 data/.DS_Store
 data/minihack_images/.DS_Store
+maze_ascii_dataset.zip
+maze_images_dataset.zip

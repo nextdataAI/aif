@@ -1,7 +1,8 @@
 from .Algorithm import Algorithm
 from ..qlearning.Agent import LSTMAgent, train
 from ..qlearning.ExperienceReplay import PrioritizedExperienceReplay
-
+import copy
+from ..AnimateGif import Animator
 __all__ = ['QLSTM']
 
 
@@ -35,7 +36,8 @@ class QLSTM(Algorithm):
 
     def __call__(self, seed: int):
         self.start_timer()
-        local_env, _, local_game_map, start, target = super().initialize_env(seed)
+        local_env, local_state, local_game_map, start, target = super().initialize_env(seed)
+        original_state = copy.deepcopy(local_state)
         input_dim = local_game_map.shape[0] * local_game_map.shape[1]
         self.agent = LSTMAgent(self.memory, input_dim, 4, self.epsilon_decay, self.env_name, batch_size=self.batch_size,
                                learning_rate=self.learning_rate, gamma=0.9, agent=self.agent)
@@ -45,4 +47,7 @@ class QLSTM(Algorithm):
         print(target_reached)
         if not target_reached:
             return False, None, explored_positions, self.stop_timer()
+        
+        if self.animate:
+            Animator(size=self.size, game_map=original_state, path=explored_positions, visited=explored_positions, file_path=f'{self.name}.gif')()
         return True, explored_positions, explored_positions, self.stop_timer()
