@@ -16,10 +16,19 @@ class Algorithm:
         self.size = None
         self.ovveride_maze = override_maze
         self.set_size()
-        self.env = gym.make(env_name, observation_keys=("chars", "pixel"), #reward_manager=reward_manager,
-                            max_episode_steps=1000)
+        self.env = gym.make(env_name, observation_keys=("chars", "pixel"), 
+                            max_episode_steps=self.get_size())
         self.name = name
-
+  
+    def get_size(self):
+        if self.size == 'large':
+            return 45*19
+        elif self.size == 'medium':
+            return 15*15
+        elif self.size == 'small':
+            return 9*9
+        return 1000
+  
     def set_size(self):
         if self.env_name == 'MiniHack-MazeWalk-Mapped-45x19-v0':
             self.size = 'large'

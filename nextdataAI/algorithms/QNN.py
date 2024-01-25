@@ -8,20 +8,37 @@ __all__ = ['QNN']
 class QNN(Algorithm):
     def __init__(self, env_name: str = "MiniHack-MazeWalk-15x15-v0", name: str = "QLSTM", animate: bool = False):
         super().__init__(env_name, name, animate)
-        self.batch_size = 400
-        self.memory = PrioritizedExperienceReplay(memory_capacity=10000)
+        if '45x19' in env_name:
+            self.batch_size = 300
+            self.max_epoch = 4
+            self.memory = PrioritizedExperienceReplay(memory_capacity=(45 * 19 * self.max_epoch) * 2)
+            self.epsilon_decay = 140
+            self.learning_rate = 1e-4
+        if '15x15' in env_name:
+            self.batch_size = 100
+            self.max_epoch = 4
+            self.memory = PrioritizedExperienceReplay(memory_capacity=(15 * 15 * self.max_epoch) * 2)
+            self.epsilon_decay = 35
+            self.learning_rate = 1e-4
+        if '9x9' in env_name:
+            self.batch_size = 30
+            self.max_epoch = 4
+            self.memory = PrioritizedExperienceReplay(memory_capacity=(9 * 9 * self.max_epoch) * 2)
+            self.epsilon_decay = 15
+            self.learning_rate = 1e-4
+
         self.agent = None
 
     def __call__(self, seed: int):
         self.start_timer()
         local_env, _, local_game_map, start, target = super().initialize_env(seed)
         input_dim = local_game_map.shape[0] * local_game_map.shape[1]
-        self.agent = NNAgent(memory=self.memory, state_dim=input_dim, action_dim=4, batch_size=self.batch_size,
-                             gamma=0.9, agent=self.agent)
+        self.agent = NNAgent(self.memory, input_dim, 4, self.epsilon_decay,
+                             batch_size=self.batch_size, learning_rate=self.learning_rate, gamma=0.9, agent=self.agent)
         target_reached, explored_positions = train(self.agent, local_env, local_game_map, start, target,
-                                                   self.batch_size)
+                                                   self.batch_size, self.max_epoch)
         self.agent.plot_learning_curve()
         print(target_reached)
         if not target_reached:
-            return None, explored_positions, self.stop_timer()
-        return explored_positions, explored_positions, self.stop_timer()
+            return False, None, explored_positions, self.stop_timer()
+        return True, explored_positions, explored_positions, self.stop_timer()
