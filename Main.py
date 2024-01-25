@@ -1,10 +1,8 @@
+import os
 import sys
 from pathlib import Path
 
-
-from typing import Callable
-from nextdataAI import BFS, DFS, Greedy, AStar, Dijkstra
-
+from nextdataAI import QLSTM
 from typing import Callable
 import numpy as np
 import pandas as pd
@@ -25,7 +23,7 @@ env_name3 = "MiniHack-MazeWalk-Mapped-9x9-v0"
 
 algorithms = [
 
-    AStar(env_name1, name='ASTAR-Manhattan-Env1'),
+    # AStar(env_name1, name='ASTAR-Manhattan-Env1'),
     # AStar(env_name2, name='ASTAR-Manhattan-Env2'),
     # AStar(env_name3, name='ASTAR-Manhattan-Env3'),
     #
@@ -37,7 +35,7 @@ algorithms = [
     # AStar(env_name2, h='euclidean', name='ASTAR-EUCLIDEAN-Env2'),
     # AStar(env_name3, h='euclidean', name='ASTAR-EUCLIDEAN-Env3'),
     #
-    AStar(env_name1, h='smanhattan', name='ASTAR-SManhattan-Env1'),
+    # AStar(env_name1, h='smanhattan', name='ASTAR-SManhattan-Env1'),
     # AStar(env_name2, h='smanhattan', name='ASTAR-SManhattan-Env2'),
     # AStar(env_name3, h='smanhattan', name='ASTAR-SManhattan-Env3'),
     #
@@ -49,29 +47,26 @@ algorithms = [
     # DFS(env_name2, name='DFS-Env2'),
     # DFS(env_name3, name='DFS-Env3'),
     #
-    Greedy(env_name1, name='GREEDY-Env1'),
+    # Greedy(env_name1, name='GREEDY-Env1'),
     # Greedy(env_name2, name='GREEDY-Env2'),
     # Greedy(env_name3, name='GREEDY-Env3'),
     #
     # Greedy(env_name1, h='smanhattan', name='GREEDY-SManhattan-Env1'),
     # Greedy(env_name2, h='smanhattan', name='GREEDY-SManhattan-Env2'),
     # Greedy(env_name3, h='smanhattan', name='GREEDY-SManhattan-Env3'),
-
+    #
     # Dijkstra(env_name1, name='DIJKSTRA-Env1'),
     # Dijkstra(env_name2, name='DIJKSTRA-Env2'),
     # Dijkstra(env_name3, name='DIJKSTRA-Env3'),
-
-    # AStar(env_name1, h='NNManhattan', name='ASTAR-NNManhattan-Env1'),
-    # AStar(env_name2, h=NNHeuristic1, name='ASTAR-NNManhattan-Env2'),
-    # AStar(env_name3, h=NNHeuristic1, name='ASTAR-NNManhattan-Env3'),
+    #
+    # AStar(env_name1, h='nnmanhattan', name='ASTAR-NNManhattan-Env1'),
+    # AStar(env_name2, h='nnmanhattan', name='ASTAR-NNManhattan-Env2'),
+    # AStar(env_name3, h='nnmanhattan', name='ASTAR-NNManhattan-Env3'),
 
     # Genetic(env_name3),
-    #
-    #
-    #
-    # QLSTM(env_name),
+
+    QLSTM(env_name3),
     # Qlearning(env_name)
-    # AlphaBeta(env_name, depth=5),
 ]
 
 

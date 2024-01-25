@@ -1,4 +1,5 @@
 import math
+import os
 import random
 from abc import abstractmethod
 
@@ -16,7 +17,6 @@ from ..utils import get_player_location
 device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 
 __all__ = ['Agent', 'LSTMAgent', 'train', 'NNAgent']
-
 
 def init_lstm(m):
     for name, param in m.named_parameters():

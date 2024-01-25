@@ -29,7 +29,8 @@ class Greedy(Algorithm):
                 path = self.build_path(parent, target)
                 time = self.stop_timer()
                 if self.animate:
-                    Animator(local_state, list(path), list(visited), f'{self.name}.gif')()
+                    Animator(size=self.size, game_map=local_state, path=list(path),
+                             visited=list(visited), file_path=f'{self.name}.gif')()
                 return True, path, list(visited), time
             for neighbor in get_valid_moves(local_game_map, node):
                 if neighbor not in visited:

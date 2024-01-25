@@ -39,7 +39,7 @@ class Dijkstra(Algorithm):
                 path = self.build_path(parent, target)
                 time = self.stop_timer()
                 if self.animate:
-                    Animator(local_state, path, close_list, f'{self.name}.gif')()
+                    Animator(size=self.size, game_map=local_state, path=path, visited=close_list, file_path=f'{self.name}.gif')()
                 return True, list(path), list(close_list), time
 
             for neighbor in get_valid_moves(local_game_map, current):
