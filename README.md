@@ -10,7 +10,7 @@
       - [X] Euclidean Heuristic
       - [X] Overkill Heuristic that destroys both Manhattan and Euclidean
     - [X] Dijkstra
-    - &#9744; Genetic Algorithm
+    - [X] Genetic Algorithm
 - [X] DL/RL approaches
     - [X] Q-Learning
       - [X] Q-Learning with NN and Experience Replay
@@ -24,8 +24,6 @@
     - [X] Number of Nodes in the Path
     - [X] Number of Nodes in the Solution
     - [X] Number of Nodes in the Maze
-    - &#9744; Reward
-- &#9744; Test
 
 Heuristics | Manhattan | Euclidean          | NNHeuristic
 :------------ |:-------------------|:-------------------| :-------------
