@@ -1,4 +1,10 @@
-# aif
+# Artificial Intelligence Foundamentals
+```
+pip install nextdataAI
+```
+
+
+[![wakatime](https://wakatime.com/badge/user/018bc303-62c0-401f-a2a8-025205fa371c/project/018d119a-cc26-4bb0-a011-7f4dfb34e22c.svg)](https://wakatime.com/badge/user/018bc303-62c0-401f-a2a8-025205fa371c/project/018d119a-cc26-4bb0-a011-7f4dfb34e22c)
 
 - [X] Generate some Mazes
 - [X] Implement course solutions
